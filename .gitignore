@@ -1,0 +1,6 @@
+# data
+*.dat
+data/
+
+# python cache
+__pycache__/
