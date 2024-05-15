@@ -25,18 +25,26 @@ class SpringDampingSystem:
         self.simulation_data = {'time': [], 'position': [], 'velocity': []}
 
     def state_equation(self, state, t):
+        '''
+        The state space equation of the system.
+        ```
+        dy/dt = f(y,t)
+                ^      
+        ```
+        '''
         x, v = state
-        
         if self.input:
             f_external = self.input(t)
         else:
             f_external = 0
-
         a = (f_external - self.k * x - self.b * v) / self.m
 
         return np.array([v,a])
 
     def update(self, dt):
+        '''
+        Update system state with Runge-Kutta methods.
+        '''
         t = self.env.now
         current_state = self.state
         k1 = self.state_equation(current_state, t)
@@ -48,6 +56,9 @@ class SpringDampingSystem:
         self.state = current_state + k * dt
 
     def run_simulation(self, runtime, dt):
+        '''
+        Run simulation within `runtime`, with time step of `dt`.
+        '''
         with tqdm(total=int(runtime/dt), desc='Running simulation') as pbar:
             while self.env.now < runtime:
                 self.simulation_data['time'].append(self.env.now)
