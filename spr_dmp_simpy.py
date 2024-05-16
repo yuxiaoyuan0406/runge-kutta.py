@@ -23,6 +23,7 @@ class SpringDampingSystem:
         self.state = initial_state
         self.input = input
         self.simulation_data = {'time': [], 'position': [], 'velocity': []}
+        self.output = 1
 
     def state_equation(self, state, t):
         '''
@@ -40,6 +41,9 @@ class SpringDampingSystem:
         a = (f_external - self.k * x - self.b * v) / self.m
 
         return np.array([v,a])
+    
+    def elec_force(self, x):
+        return 0
 
     def update(self, dt):
         '''
