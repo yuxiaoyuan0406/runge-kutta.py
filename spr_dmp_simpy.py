@@ -12,10 +12,10 @@ class SpringDampingSystem:
         mass: float,
         spring_coef: float,
         damping_coef: float,
-        area: float,
-        gap: float,
-        v_ref: float,
-        initial_state: np.ndarray,
+        area: float = 0,
+        gap: float = 0,
+        v_ref: float = 0,
+        initial_state: np.ndarray = np.array([0.,0.]),
         input = None,
     ):
         self.env = env
@@ -28,7 +28,7 @@ class SpringDampingSystem:
         self.state = initial_state
         self.input = input
         self.simulation_data = {'time': [], 'position': [], 'velocity': []}
-        self.output = int(1)
+        self.pid_cmd = int(1)
 
         e0 = 8.854187817e-12
         
@@ -52,7 +52,7 @@ class SpringDampingSystem:
         return np.array([v,a])
     
     def elec_force(self, x):
-        if self.output == 1:
+        if self.pid_cmd == 1:
             # pull up
             distance = self.gap - x
             coef = self.elec_force_coef
@@ -71,25 +71,67 @@ class SpringDampingSystem:
         t = self.env.now
         current_state = self.state
         k1 = self.state_equation(current_state, t)
-        k2 = self.state_equation(current_state + k1 * dt/2, t)+dt/2
-        k3 = self.state_equation(current_state + k2 * dt/2, t)+dt/2
+        k2 = self.state_equation(current_state + k1 * dt/2, t+dt/2)
+        k3 = self.state_equation(current_state + k2 * dt/2, t+dt/2)
         k4 = self.state_equation(current_state + k3 * dt, t+dt)
 
         k = (k1 + 2*k2 + 2*k3 + k4)/6
         self.state = current_state + k * dt
 
-    def run_simulation(self, runtime, dt):
+    def run(self, runtime, dt):
         '''
         Run simulation within `runtime`, with time step of `dt`.
         '''
-        with tqdm(total=int(runtime/dt), desc='Running simulation') as pbar:
-            while self.env.now < runtime:
-                self.simulation_data['time'].append(self.env.now)
-                self.simulation_data['position'].append(self.state[0])
-                self.simulation_data['velocity'].append(self.state[1])
-                self.update(dt)
-                pbar.update(1)
-                yield self.env.timeout(dt)
+        while self.env.now < runtime:
+            # self.pid_cmd = yield
+            self.simulation_data['time'].append(self.env.now)
+            self.simulation_data['position'].append(self.state[0])
+            self.simulation_data['velocity'].append(self.state[1])
+            self.update(dt)
+            yield self.env.timeout(dt)
+
+class PIDModule:
+    def __init__(
+        self,
+        env: simpy.Environment,
+        kp: float,
+        ki1: float,
+        ki2: float,
+        kd: float,
+        target: float = 0.,
+    ):
+        self.env = env
+        self.kp = kp
+        self.ki1 = ki1
+        self.ki2 = ki2
+        self.kd = kd
+        self.target = target
+
+        self.integral1 = 0.
+        self.integral2 = 0.
+
+        self.previous_error = 0.
+
+        self.simulation_data = {'time': [], 'output': []}
+
+        self.out = self.quantizer(0)
+
+    def quantizer(self, val):
+        return int(np.sign(val))
+
+    def update(self, current_value):
+        error = self.target - current_value
+        self.integral2 += 0.038 * self.integral1
+        feed_back = -0.01139 * self.integral2
+        self.integral1 += 0.06 * feed_back + 1.55 * error
+        derivative = error - self.previous_error
+        self.previous_error = error
+
+        self.out = self.quantizer(self.kp * error + self.ki1 * self.integral1 + self.ki2 * self.integral2 + self.kd * derivative)
+        return self.out
+
+    def run(self, runtime, dt):
+        pass
 
 def external_force(t):
     return 0.00004*np.sin(2 * np.pi * 5e1 * t)
@@ -103,13 +145,16 @@ if __name__ == '__main__':
         mass=7.45e-7,
         spring_coef=5.623,
         damping_coef=4.95e-6,
+        area=0,
+        gap=0,
+        v_ref=2.5,
         initial_state=initial_state,
         input=external_force
     )
 
     runtime = 1.
     dt = 1e-6
-    env.process(spring_system.run_simulation(runtime, dt))
+    env.process(spring_system.run(runtime, dt))
     env.run(until=runtime)
 
     plt.figure()
