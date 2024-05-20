@@ -4,7 +4,6 @@ import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 from tqdm import tqdm
-from numba import njit, float64, jit
 
 class SpringDampingSystem:
     def __init__(
@@ -13,6 +12,9 @@ class SpringDampingSystem:
         mass: float,
         spring_coef: float,
         damping_coef: float,
+        area: float,
+        gap: float,
+        v_ref: float,
         initial_state: np.ndarray,
         input = None,
     ):
@@ -20,10 +22,17 @@ class SpringDampingSystem:
         self.m = mass
         self.k = spring_coef
         self.b = damping_coef
+        self.area = area
+        self.gap = gap
+        self.v_ref = v_ref
         self.state = initial_state
         self.input = input
         self.simulation_data = {'time': [], 'position': [], 'velocity': []}
-        self.output = 1
+        self.output = int(1)
+
+        e0 = 8.854187817e-12
+        
+        self.elec_force_coef = 0.5 * e0 * (2 * self.v_ref) ** 2 / 10
 
     def state_equation(self, state, t):
         '''
@@ -43,7 +52,17 @@ class SpringDampingSystem:
         return np.array([v,a])
     
     def elec_force(self, x):
-        return 0
+        if self.output == 1:
+            # pull up
+            distance = self.gap - x
+            coef = self.elec_force_coef
+        else: # self.output == -1
+            # pull down
+            distance = self.gap + x
+            coef = -self.elec_force_coef
+        
+        return coef / (distance ** 2)
+            
 
     def update(self, dt):
         '''
