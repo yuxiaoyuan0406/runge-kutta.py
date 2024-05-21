@@ -23,25 +23,26 @@ class System:
     def __init__(
         self,
         env,
+        config: dict,
         extern_f = external_force,
     ) -> None:
-        self.runtime = 1.
-        self.mechanic_dt = 1e-6
-        self.fs = 128 * 1e3
+        self.runtime = config['runtime']
+        self.mechanic_dt = config['mechanic_dt']
+        self.fs = config['samp_rate']
 
         self.env = env
         self.system_state = SystemState()
 
         self.extern_f = extern_f
 
-        self.initial_state = np.array([0., 0.], dtype=np.float64)
+        self.initial_state = np.array(config.get('initial_state', [0,0]), dtype=np.float64)
 
         from .spring_damping import SpringDampingSystem
         self.spring_system = SpringDampingSystem(
             env = self.env,
-            mass = 7.45e-7,
-            spring_coef = 5.623,
-            damping_coef = 4.95e-6,
+            mass = config['mass'],
+            spring_coef = config['spring_coef'],
+            damping_coef = config['damping_coef'],
             initial_state = self.initial_state,
             system_state = self.system_state,
             runtime = self.runtime,
@@ -52,22 +53,22 @@ class System:
         from .pid import PID
         self.pid = PID(
             env = self.env,
-            kp = -5,
-            ki1 = -0.516,
-            ki2 = -0.5,
-            kd = -1,
+            kp = config['kp'],
+            ki1 = config['ki1'],
+            ki2 = config['ki2'],
+            kd = config['kd'],
             system_state = self.system_state,
             fs = self.fs,
             runtime = self.runtime,
-            target = 0,
+            target = config['pid_target'],
         )
 
         from .elec_feedback import ElecFeedback
         self.elec_feedback = ElecFeedback(
             env = self.env,
-            area = 1.7388e-6,
-            gap = 3e-6,
-            v_ref = 2.5,
+            area = config['area'],
+            gap = config['gap'],
+            v_ref = config['v_ref'],
             runtime = self.runtime,
             fs = self.fs,
             system_state = self.system_state,

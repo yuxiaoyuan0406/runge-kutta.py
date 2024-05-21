@@ -1,0 +1,21 @@
+runtime: 1.0
+mechanic_dt: 1.0e-6
+samp_rate: 1.28e+5
+
+mass: 7.45e-7
+spring_coef: 5.623
+damping_coef: 4.95e-6
+initial_state:
+  - 0.
+  - 0.
+
+kp: -5
+ki1: -0.516
+ki2: -0.5
+kd: -1
+pid_target: 0
+
+area: 1.7388e-6
+gap: 3.0e-6
+v_ref: 2.5
+

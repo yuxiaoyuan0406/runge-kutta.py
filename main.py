@@ -1,12 +1,14 @@
 '''
 Author: Yu Xiaoyuan
 '''
+import argparse
 import simpy
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 import module
+import yaml
 
 matplotlib.use('TkAgg')
 
@@ -17,13 +19,31 @@ def external_force(t: float):
     return 4*np.sin(2 * np.pi * 2e2 * t)
     # return 0
 
+def argue_parser():
+    parser = argparse.ArgumentParser(description='Run simulation of a mems die.')
+
+    parser.add_argument('--param', type=str,
+        help='An optional simulation parameters file in yaml format',
+        default='parameters/default.yaml')
+
+    args = parser.parse_args()
+
+    return args
+
 if __name__ == '__main__':
+    args = argue_parser()
+
+    print(f'Using parameters from file `{args.param}`.')
+    with open(args.param) as f:
+        param = yaml.safe_load(f)
+        f.close()
+        print(yaml.dump(param))
+
+    runtime = param['runtime']
+    dt = param['mechanic_dt']
+
     env = simpy.Environment(0)
-
-    runtime = 1.
-    dt = 1e-6
-
-    system = module.System(env, extern_f=external_force)
+    system = module.System(env, config=param, extern_f=external_force)
 
     # initial_state = np.array([0., 0.], dtype=np.float64)
     # spring_system = SpringDampingSystem(
