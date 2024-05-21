@@ -90,3 +90,14 @@ if __name__ == '__main__':
 
     plt.legend(loc='upper right')
     plt.show()
+
+    simulation_data = {
+        'parameters': {},
+        'mass_block_state': {},
+        'quantized_output': {}
+    }
+    simulation_data['parameters'] = param
+    simulation_data['mass_block_state'] = system.spring_system.simulation_data
+    simulation_data['quantized_output'] = system.pid.simulation_data
+
+    util.save(args.out, simulation_data)
