@@ -64,5 +64,9 @@ if __name__ == '__main__':
             pbar.update(1)
 
     plt.figure()
-    plt.plot(system.spring_system.simulation_data['time'], system.spring_system.simulation_data['position'])
+    plt.plot(system.spring_system.simulation_data['time'],
+             system.spring_system.simulation_data['position'],
+             label='Displacement')
+    plt.grid(True)
+    plt.legend(loc='upper right')
     plt.show()
