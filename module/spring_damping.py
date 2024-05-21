@@ -1,14 +1,16 @@
 import simpy
 import numpy as np
+from .system import SystemState
 
 class SpringDampingSystem:
     def __init__(
         self,
         env: simpy.Environment,
+        system_state: SystemState,
         mass: float,
         spring_coef: float,
         damping_coef: float,
-        initial_state: np.ndarray = np.array([0.,0.]),
+        initial_state: np.ndarray = np.array([0.,0., np.float64]),
         runtime: float=1.,
         dt: float=1e-6,
         input_force = None,
@@ -17,6 +19,7 @@ class SpringDampingSystem:
         self.m = mass
         self.k = spring_coef
         self.b = damping_coef
+        self.system_state = system_state
         self.state = initial_state
         self.runtime = runtime
         self.dt = dt
@@ -24,7 +27,7 @@ class SpringDampingSystem:
         self.simulation_data = {'time': [], 'position': [], 'velocity': []}
         self.pid_cmd = int(1)
 
-        self.env.process(self.run(runtime, dt))
+        self.env.process(self.run(self.dt))
 
     def state_equation(self, state, t):
         '''
@@ -56,12 +59,13 @@ class SpringDampingSystem:
 
         k = (k1 + 2*k2 + 2*k3 + k4)/6
         self.state = current_state + k * dt
+        self.system_state.mass_block_state = self.state
 
-    def run(self, runtime, dt):
+    def run(self, dt):
         '''
         Run simulation within `runtime`, with time step of `dt`.
         '''
-        while self.env.now < runtime:
+        while self.env.now < self.runtime:
             # self.pid_cmd = yield
             self.simulation_data['time'].append(self.env.now)
             self.simulation_data['position'].append(self.state[0])

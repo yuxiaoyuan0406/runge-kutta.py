@@ -1,14 +1,18 @@
 import simpy
 import numpy as np
+from .system import SystemState
 
 class PID:
     def __init__(
         self,
         env: simpy.Environment,
-        kp: float,
-        ki1: float,
-        ki2: float,
-        kd: float,
+        system_state: SystemState,
+        kp: float = -5,
+        ki1: float = -0.516,
+        ki2: float = -0.5,
+        kd: float = 0,
+        fs: float = 128*1e3,
+        runtime: float = 1,
         target: float = 0.,
     ):
         self.env = env
@@ -16,6 +20,9 @@ class PID:
         self.ki1 = ki1
         self.ki2 = ki2
         self.kd = kd
+        self.system_state = system_state
+        self.fs = fs
+        self.runtime = runtime
         self.target = target
 
         self.integral1 = 0.
@@ -26,6 +33,8 @@ class PID:
         self.simulation_data = {'time': [], 'output': []}
 
         self.out = self.quantizer(0)
+
+        self.env.process(self.run())
 
     def quantizer(self, val):
         return int(np.sign(val))
@@ -39,8 +48,12 @@ class PID:
         self.previous_error = error
 
         self.out = self.quantizer(self.kp * error + self.ki1 * self.integral1 + self.ki2 * self.integral2 + self.kd * derivative)
-        return self.out
+        self.system_state.pid_cmd = self.out
 
-    def run(self, runtime, dt):
-        pass
+    def run(self):
+        while self.env.now < self.runtime:
+            self.simulation_data['time'].append(self.env.now)
+            self.simulation_data['output'].append(self.out)
+            self.update(self.system_state.mass_block_state[0])
+            yield self.env.timeout(1/self.fs)
 
