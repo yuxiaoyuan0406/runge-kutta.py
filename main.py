@@ -7,8 +7,8 @@ import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 from tqdm import tqdm
-import module
-import yaml
+import json
+import sys
 
 import module
 import util
@@ -31,14 +31,12 @@ def argue_parser():
     parser.add_argument(
         '--param',
         type=str,
-        help='An optional simulation parameters file in yaml format',
-        default='parameters/default.yaml')
-    parser.add_argument(
-        '--out',
-        type=str,
-        help='Data output file.',
-        default='data/data.yaml'
-    )
+        help='An optional simulation parameters file in json format',
+        default='parameters/default.json')
+    parser.add_argument('--out',
+                        type=str,
+                        help='Data output file.',
+                        default=f'data/{util.formatted_date_time}-data.json')
 
     args = parser.parse_args()
 
@@ -50,9 +48,9 @@ if __name__ == '__main__':
 
     print(f'Using parameters from file `{args.param}`.')
     with open(args.param) as f:
-        param = yaml.safe_load(f)
+        param = json.load(f)
         f.close()
-        print(yaml.dump(param))
+        json.dump(param, sys.stdout, indent=2)
 
     runtime = param['runtime']
     dt = param['mechanic_dt']
@@ -83,10 +81,11 @@ if __name__ == '__main__':
                             system.spring_system.simulation_data['position']),
                         label='Displacement')
 
-    power, phase = util.freq_and_plot(np.array(
-        system.spring_system.simulation_data['position']),
-                                         dt,
-                                         log=True,)
+    power, phase = util.freq_and_plot(
+        np.array(system.spring_system.simulation_data['position']),
+        dt,
+        log=True,
+    )
 
     plt.legend(loc='upper right')
     plt.show()
