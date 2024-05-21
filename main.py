@@ -10,25 +10,40 @@ from tqdm import tqdm
 import module
 import yaml
 
+import module
+import util
+
 matplotlib.use('TkAgg')
+
 
 def external_force(t: float):
     '''
     External Force, nothing unusual.
     '''
-    return 4*np.sin(2 * np.pi * 2e2 * t)
+    return 4 * np.sin(2 * np.pi * 2e2 * t)
     # return 0
 
-def argue_parser():
-    parser = argparse.ArgumentParser(description='Run simulation of a mems die.')
 
-    parser.add_argument('--param', type=str,
+def argue_parser():
+    parser = argparse.ArgumentParser(
+        description='Run simulation of a mems die.')
+
+    parser.add_argument(
+        '--param',
+        type=str,
         help='An optional simulation parameters file in yaml format',
         default='parameters/default.yaml')
+    parser.add_argument(
+        '--out',
+        type=str,
+        help='Data output file.',
+        default='data/data.yaml'
+    )
 
     args = parser.parse_args()
 
     return args
+
 
 if __name__ == '__main__':
     args = argue_parser()
@@ -58,15 +73,20 @@ if __name__ == '__main__':
     # )
 
     # env.process(spring_system.run(runtime, dt))
-    with tqdm(total=int(runtime/dt), desc='Running simulation') as pbar:
+    with tqdm(total=int(runtime / dt), desc='Running simulation') as pbar:
         while env.now < runtime:
             env.run(until=env.now + dt)
             pbar.update(1)
 
-    plt.figure()
-    plt.plot(system.spring_system.simulation_data['time'],
-             system.spring_system.simulation_data['position'],
-             label='Displacement')
-    plt.grid(True)
+    _, t_ax = util.plot(np.array(system.spring_system.simulation_data['time']),
+                        np.array(
+                            system.spring_system.simulation_data['position']),
+                        label='Displacement')
+
+    power, phase = util.freq_and_plot(np.array(
+        system.spring_system.simulation_data['position']),
+                                         dt,
+                                         log=True,)
+
     plt.legend(loc='upper right')
     plt.show()

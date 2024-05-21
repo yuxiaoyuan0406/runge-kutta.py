@@ -1,1 +1,3 @@
-from .freq import freq_and_plot
+from .freq import *
+from .analysis import *
+from .plot import *
