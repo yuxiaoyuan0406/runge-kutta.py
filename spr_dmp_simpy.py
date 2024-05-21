@@ -154,8 +154,12 @@ if __name__ == '__main__':
 
     runtime = 1.
     dt = 1e-6
+
     env.process(spring_system.run(runtime, dt))
-    env.run(until=runtime)
+    with tqdm(total=int(runtime/dt), desc='Running simulation') as pbar:
+        while env.now < runtime:
+            env.run(until=env.now + dt)
+            pbar.update(1)
 
     plt.figure()
     plt.plot(spring_system.simulation_data['time'], spring_system.simulation_data['position'])
