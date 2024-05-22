@@ -2,7 +2,9 @@ import simpy
 import numpy as np
 from .system import SystemState
 
+
 class PID:
+
     def __init__(
         self,
         env: simpy.Environment,
@@ -11,7 +13,7 @@ class PID:
         ki1: float = -0.516,
         ki2: float = -0.5,
         kd: float = 0,
-        fs: float = 128*1e3,
+        fs: float = 128 * 1e3,
         runtime: float = 1,
         target: float = 0.,
     ):
@@ -47,7 +49,9 @@ class PID:
         derivative = error - self.previous_error
         self.previous_error = error
 
-        self.out = self.quantizer(self.kp * error + self.ki1 * self.integral1 + self.ki2 * self.integral2 + self.kd * derivative)
+        self.out = self.quantizer(self.kp * error + self.ki1 * self.integral1 +
+                                  self.ki2 * self.integral2 +
+                                  self.kd * derivative)
         self.system_state.pid_cmd = self.out
 
     def run(self):
@@ -55,5 +59,4 @@ class PID:
             self.simulation_data['time'].append(self.env.now)
             self.simulation_data['output'].append(self.out)
             self.update(self.system_state.mass_block_state[0])
-            yield self.env.timeout(1/self.fs)
-
+            yield self.env.timeout(1 / self.fs)

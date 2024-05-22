@@ -2,7 +2,9 @@ import simpy
 import numpy as np
 from .system import SystemState
 
+
 class SpringDampingSystem:
+
     def __init__(
         self,
         env: simpy.Environment,
@@ -10,10 +12,10 @@ class SpringDampingSystem:
         mass: float,
         spring_coef: float,
         damping_coef: float,
-        initial_state: np.ndarray = np.array([0.,0., np.float64]),
-        runtime: float=1.,
-        dt: float=1e-6,
-        input_force = None,
+        initial_state: np.ndarray = np.array([0., 0., np.float64]),
+        runtime: float = 1.,
+        dt: float = 1e-6,
+        input_force=None,
     ):
         self.env = env
         self.m = mass
@@ -44,7 +46,7 @@ class SpringDampingSystem:
             f_external = 0
         a = (f_external - self.k * x - self.b * v) / self.m
 
-        return np.array([v,a])
+        return np.array([v, a])
 
     def update(self, dt):
         '''
@@ -53,11 +55,11 @@ class SpringDampingSystem:
         t = self.env.now
         current_state = self.state
         k1 = self.state_equation(current_state, t)
-        k2 = self.state_equation(current_state + k1 * dt/2, t+dt/2)
-        k3 = self.state_equation(current_state + k2 * dt/2, t+dt/2)
-        k4 = self.state_equation(current_state + k3 * dt, t+dt)
+        k2 = self.state_equation(current_state + k1 * dt / 2, t + dt / 2)
+        k3 = self.state_equation(current_state + k2 * dt / 2, t + dt / 2)
+        k4 = self.state_equation(current_state + k3 * dt, t + dt)
 
-        k = (k1 + 2*k2 + 2*k3 + k4)/6
+        k = (k1 + 2 * k2 + 2 * k3 + k4) / 6
         self.state = current_state + k * dt
         self.system_state.mass_block_state = self.state
 

@@ -1,11 +1,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+
 def plot(
     x_data: np.ndarray,  # 自变量数据
     y_data: np.ndarray,  # 因变量数据
     label: str = 'Data',
-    ax=None, # 可选的Axes对象
+    ax=None,  # 可选的Axes对象
     show=False,
     block=False,
 ):

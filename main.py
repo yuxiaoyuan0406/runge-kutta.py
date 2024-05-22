@@ -25,6 +25,9 @@ def external_force(t: float):
 
 
 def argue_parser():
+    '''
+    Arguements.
+    '''
     parser = argparse.ArgumentParser(
         description='Run simulation of a mems die.')
 
@@ -38,9 +41,7 @@ def argue_parser():
                         help='Data output file.',
                         default=f'data/{util.formatted_date_time}-data.json')
 
-    args = parser.parse_args()
-
-    return args
+    return parser.parse_args()
 
 
 if __name__ == '__main__':

@@ -5,6 +5,7 @@ from matplotlib.ticker import MultipleLocator, FuncFormatter
 
 matplotlib.use('TkAgg')
 
+
 def power_and_phase(
     a: np.ndarray,
     dt: float,
@@ -74,6 +75,7 @@ def freq_and_plot(
         plt.show(block=block)
 
     return power_ax, phase_ax
+
 
 if __name__ == '__main__':
     # t,dt = np.linspace(0,2,2000000, retstep=True)
