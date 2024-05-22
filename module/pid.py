@@ -64,7 +64,6 @@ class PID:
         self.out = self.quantizer(self.kp * error + self.ki1 * self.integral1 +
                                   self.ki2 * self.integral2 +
                                   self.kd * derivative)
-        self.system_state.pid_cmd = self.out
 
     def run(self):
         '''
@@ -73,5 +72,6 @@ class PID:
         while self.env.now < self.runtime:
             self.simulation_data['time'].append(self.env.now)
             self.simulation_data['output'].append(self.out)
+            self.system_state.pid_cmd = self.out
             self.update(self.system_state.mass_block_state[0])
             yield self.env.timeout(1 / self.fs)

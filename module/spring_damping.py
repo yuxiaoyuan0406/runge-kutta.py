@@ -67,7 +67,6 @@ class SpringDampingSystem:
 
         k = (k1 + 2 * k2 + 2 * k3 + k4) / 6
         self.state = current_state + k * dt
-        self.system_state.mass_block_state = self.state
 
     def run(self, dt):
         '''
@@ -78,5 +77,6 @@ class SpringDampingSystem:
             self.simulation_data['time'].append(self.env.now)
             self.simulation_data['position'].append(self.state[0])
             self.simulation_data['velocity'].append(self.state[1])
+            self.system_state.mass_block_state = self.state
             self.update(dt)
             yield self.env.timeout(dt)
