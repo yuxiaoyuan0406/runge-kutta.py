@@ -3,12 +3,15 @@ Author: Xiaoyuan Yu
 '''
 import numpy as np
 import matplotlib
+import matplotlib.pyplot as plt
 
 matplotlib.use('TkAgg')
-import matplotlib.pyplot as plt
 
 
 class NamedArray(np.ndarray):
+    '''
+    `np.ndarray` class with name tag
+    '''
 
     def __new__(cls, input_array, name='', color=''):
         obj = np.asarray(input_array).view(cls)
@@ -17,7 +20,8 @@ class NamedArray(np.ndarray):
         return obj
 
     def __array_finalize__(self, obj):
-        if obj is None: return
+        if obj is None:
+            return
         self.name = getattr(obj, 'name', "")
         self.color = getattr(obj, 'color', "")
 

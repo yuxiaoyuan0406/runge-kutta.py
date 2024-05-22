@@ -1,3 +1,6 @@
+'''
+Simple plot.
+'''
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -10,6 +13,9 @@ def plot(
     show=False,
     block=False,
 ):
+    '''
+    Simple plot.
+    '''
     # 检查是否提供了Axes对象，如果没有则创建新的Figure和Axes
     if ax is None:
         fig, ax = plt.subplots()

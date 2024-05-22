@@ -1,9 +1,15 @@
+'''
+The PID module.
+'''
 import simpy
 import numpy as np
 from .system import SystemState
 
 
 class PID:
+    '''
+    PID module.
+    '''
 
     def __init__(
         self,
@@ -39,9 +45,15 @@ class PID:
         self.env.process(self.run())
 
     def quantizer(self, val):
+        '''
+        The quantizer after PID module.
+        '''
         return int(np.sign(val))
 
     def update(self, current_value):
+        '''
+        Update pid status.
+        '''
         error = self.target - current_value
         self.integral2 += 0.038 * self.integral1
         feed_back = -0.01139 * self.integral2
@@ -55,6 +67,9 @@ class PID:
         self.system_state.pid_cmd = self.out
 
     def run(self):
+        '''
+        Main loop of simulation.
+        '''
         while self.env.now < self.runtime:
             self.simulation_data['time'].append(self.env.now)
             self.simulation_data['output'].append(self.out)

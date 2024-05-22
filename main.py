@@ -2,13 +2,13 @@
 Author: Yu Xiaoyuan
 '''
 import argparse
+import json
+import sys
 import simpy
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 from tqdm import tqdm
-import json
-import sys
 
 import module
 import util

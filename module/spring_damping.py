@@ -1,9 +1,15 @@
+'''
+Spring damping system.
+'''
 import simpy
 import numpy as np
 from .system import SystemState
 
 
 class SpringDampingSystem:
+    '''
+    Spring damping system.
+    '''
 
     def __init__(
         self,

@@ -1,19 +1,28 @@
 '''
+System wide class.
 '''
+from dataclasses import dataclass
 import numpy as np
 import simpy
 
 
+@dataclass
 class SystemState:
+    '''
+    Class to store some shared system state between modules.
+    '''
+    mass_block_state: np.ndarray = np.array([0, 0], np.float64)
+    pid_cmd: int = 1
+    elec_feedback_enable = True
 
-    def __init__(
-            self,
-            mass_block_state: np.ndarray = np.array([0, 0], np.float64),
-    ) -> None:
+    # def __init__(
+    #         self,
+    #         mass_block_state: np.ndarray = np.array([0, 0], np.float64),
+    # ) -> None:
 
-        self.mass_block_state = mass_block_state
-        self.pid_cmd = 1
-        self.elec_feedback_enable = True
+    #     self.mass_block_state = mass_block_state
+    #     self.pid_cmd = 1
+    #     self.elec_feedback_enable = True
 
 
 def external_force(t: float):
@@ -24,10 +33,13 @@ def external_force(t: float):
 
 
 class System:
+    '''
+    The whole MEMs system.
+    '''
 
     def __init__(
         self,
-        env,
+        env: simpy.Environment,
         config: dict,
         extern_f=external_force,
     ) -> None:
@@ -81,4 +93,8 @@ class System:
         )
 
     def calclute_force(self, t):
+        '''
+        The force delivered to the mass block is external force 
+        plus the electrical feedback force.
+        '''
         return self.extern_f(t) + self.elec_feedback.force()

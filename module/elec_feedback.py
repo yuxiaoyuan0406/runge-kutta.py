@@ -1,9 +1,16 @@
-import numpy as np
+'''
+Module for electrical force feedback.
+'''
+# import numpy as np
 import simpy
 from .system import SystemState
 
 
 class ElecFeedback:
+    '''
+    Electrical force feedback module.
+    With a working frequancy the same of the sampling rate.
+    '''
 
     def __init__(
         self,
@@ -34,6 +41,11 @@ class ElecFeedback:
         self.env.process(self.run(self.fs))
 
     def force(self) -> float:
+        '''
+        Calculate the electric force.
+        With pid command controling its direction.
+        Only deliver force in half of the time.
+        '''
         if not self._enabled:
             return 0
 
@@ -51,9 +63,13 @@ class ElecFeedback:
         return coef / (distance**2)
 
     def run(self, fs):
-        Ts = 1 / fs
+        '''
+        Function to be processed when simulation started.
+        Update enable state every half period.
+        '''
+        periode = 1 / fs
         while self.env.now < self.runtime:
             self._enabled = False
-            yield self.env.timeout(Ts / 2)
+            yield self.env.timeout(periode / 2)
             self._enabled = True
-            yield self.env.timeout(Ts / 2)
+            yield self.env.timeout(periode / 2)

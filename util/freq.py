@@ -1,3 +1,6 @@
+'''
+Functions for run a fft and plot the Bode diagram.
+'''
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
@@ -12,6 +15,10 @@ def power_and_phase(
     log: bool = False,
     max_freq=None,
 ):
+    '''
+    Calculate the amplitude spectrum and phase spectrum 
+    of a sequence given a sampling period.
+    '''
     _f_a = np.fft.fftshift(np.fft.fft(a))
     f_a_power = np.abs(_f_a)
     f_a_phase = np.angle(_f_a)
@@ -48,6 +55,11 @@ def freq_and_plot(
     power_ax=None,
     phase_ax=None,
 ):
+    '''
+    Calculate the spectrum of the sequence given a sampling period 
+    and plot the Bode diagram.
+    Return the axes that can draw more onto.
+    '''
     f, f_a_power, f_a_phase = power_and_phase(a, dt, log, max_freq)
     # window_name='fft'
 
