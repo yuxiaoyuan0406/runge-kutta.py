@@ -47,7 +47,7 @@ if __name__ == '__main__':
     args = argue_parser()
 
     print(f'Using parameters from file `{args.param}`.')
-    with open(args.param) as f:
+    with open(args.param, 'r', encoding='utf-8', errors='replace') as f:
         param = json.load(f)
         f.close()
         json.dump(param, sys.stdout, indent=2)
