@@ -88,6 +88,40 @@ def freq_and_plot(
 
     return power_ax, phase_ax
 
+def high_pass_filter(f: np.ndarray, fz: float, fp: float):
+    '''
+    Return a high pass filter with given `f_z` and `f_p`.
+    ```
+    H(f) = (1 + j f/f_z) / (1 + j f/f_p)
+    ```
+    '''
+    return (1 + (1j) * f / fz) / (1 + (1j) * f / fp)    
+
+def ideal_low_pass_filter(f:np.ndarray, f0: float):
+    _ = np.ones(f.shape)
+    for i in range(len(f)):
+        if np.abs(f[i]) >= f0:
+            _[i] = 0
+    return _
+
+def low_pass_filter(f, f0):
+    return 1 / (1 + (1j) * f / f0)
+
+def t_to_f(x: np.ndarray, dt: float, retstep=False):
+    f, df = np.linspace(-.5/dt, .5/dt, len(x), endpoint=False, retstep=True)
+    X = np.fft.fftshift(np.fft.fft(x))
+    if retstep:
+        return f,df,X
+    else:
+        return f, X
+
+def f_to_t(X: np.ndarray, df: float, t0: float = 0, retstep=False):
+    t, dt = np.linspace(t0, t0 + 1/df, len(X), endpoint=False, retstep=True)
+    x = np.fft.ifft(np.fft.ifftshift(X))
+    if retstep:
+        return t, dt, x
+    else:
+        return t, x
 
 if __name__ == '__main__':
     # t,dt = np.linspace(0,2,2000000, retstep=True)
