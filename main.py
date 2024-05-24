@@ -16,11 +16,11 @@ import util
 matplotlib.use('TkAgg')
 
 
-def external_force(t: float):
+def external_accel(t: float):
     '''
     External Force, nothing unusual.
     '''
-    return 4 * np.sin(2 * np.pi * 2e2 * t)
+    return 0.4 * np.sin(2 * np.pi * 2e2 * t)
     # return 0
 
 
@@ -57,7 +57,7 @@ if __name__ == '__main__':
     dt = param['mechanic_dt']
 
     env = simpy.Environment(0)
-    system = module.System(env, config=param, extern_f=external_force)
+    system = module.System(env, config=param, extern_accel=external_accel)
 
     # initial_state = np.array([0., 0.], dtype=np.float64)
     # spring_system = SpringDampingSystem(

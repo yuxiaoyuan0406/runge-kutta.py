@@ -21,7 +21,7 @@ class SpringDampingSystem:
         initial_state: np.ndarray = np.array([0., 0., np.float64]),
         runtime: float = 1.,
         dt: float = 1e-6,
-        input_force=None,
+        input_accel=None,
     ):
         self.env = env
         self.m = mass
@@ -31,7 +31,7 @@ class SpringDampingSystem:
         self.state = initial_state
         self.runtime = runtime
         self.dt = dt
-        self.input = input_force
+        self.input = input_accel
         self.simulation_data = {'time': [], 'position': [], 'velocity': []}
         self.pid_cmd = int(1)
 
@@ -47,10 +47,10 @@ class SpringDampingSystem:
         '''
         x, v = state
         if self.input:
-            f_external = self.input(t)
+            a_external = self.input(t)
         else:
-            f_external = 0
-        a = (f_external - self.k * x - self.b * v) / self.m
+            a_external = 0
+        a = a_external - (self.k * x - self.b * v) / self.m
 
         return np.array([v, a])
 

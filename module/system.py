@@ -41,7 +41,7 @@ class System:
         self,
         env: simpy.Environment,
         config: dict,
-        extern_f=external_force,
+        extern_accel=external_force,
     ) -> None:
         self.runtime = config['runtime']
         self.mechanic_dt = config['mechanic_dt']
@@ -50,7 +50,7 @@ class System:
         self.env = env
         self.system_state = SystemState()
 
-        self.extern_f = extern_f
+        self.extern_accel = extern_accel
 
         self.initial_state = np.array(config.get('initial_state', [0, 0]),
                                       dtype=np.float64)
@@ -65,7 +65,7 @@ class System:
             system_state=self.system_state,
             runtime=self.runtime,
             dt=self.mechanic_dt,
-            input_force=self.calclute_force,
+            input_accel=self.calclute_accel,
         )
 
         from .pid import PID
@@ -92,9 +92,9 @@ class System:
             system_state=self.system_state,
         )
 
-    def calclute_force(self, t):
+    def calclute_accel(self, t):
         '''
-        The force delivered to the mass block is external force 
+        The acceleration delivered to the mass block is external acceleration 
         plus the electrical feedback force.
         '''
-        return self.extern_f(t) + self.elec_feedback.force()
+        return self.extern_accel(t) + self.elec_feedback.force() / self.spring_system.m
