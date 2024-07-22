@@ -50,7 +50,7 @@ class SpringDampingSystem:
             a_external = self.input(t)
         else:
             a_external = 0
-        a = a_external - (self.k * x - self.b * v) / self.m
+        a = a_external - (self.k * x + self.b * v) / self.m
 
         return np.array([v, a])
 
