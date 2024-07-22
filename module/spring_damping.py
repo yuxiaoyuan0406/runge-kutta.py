@@ -18,7 +18,7 @@ class SpringDampingSystem:
         mass: float,
         spring_coef: float,
         damping_coef: float,
-        initial_state: np.ndarray = np.array([0., 0., np.float64]),
+        initial_state: np.ndarray = np.array([0., 0.], dtype=np.float64),
         runtime: float = 1.,
         dt: float = 1e-6,
         input_accel=None,
