@@ -1,5 +1,5 @@
 {
-    "runtime": 1.0,
+    "runtime": 2.0,
     "mechanic_dt": 5e-07,
     "samp_rate": 128000.0,
     "mass": 7.45e-07,
