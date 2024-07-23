@@ -31,7 +31,7 @@ def argue_parser():
     Arguements.
     '''
     parser = argparse.ArgumentParser(
-        description='Run simulation of a mems die.')
+        description='Run simulation of a spring-damping system.')
 
     parser.add_argument(
         '--param',
@@ -77,7 +77,7 @@ if __name__ == '__main__':
     )
 
     # env.process(spring_system.run(runtime, dt))
-    with tqdm(total=int(runtime / dt), desc='Running simulation') as pbar:
+    with tqdm(total=int(runtime / dt), desc='Running') as pbar:
         while env.now < runtime:
             env.run(until=env.now + dt)
             pbar.update(1)
