@@ -23,8 +23,17 @@ def external_accel(t):
     '''
     External Force, nothing unusual.
     '''
-    return 4e-1 * np.sin(2 * np.pi * 5e1 * t)
+    # return 4e-1 * np.sin(2 * np.pi * 5e1 * t)
+    return unit_pulse(t)
 
+@util.vectorize
+def unit_pulse(x: float)-> float:
+    '''
+    Unit pulse function.
+    '''
+    if x == 0:
+        return 1.
+    return 0.
 
 def argue_parser():
     '''
@@ -106,7 +115,7 @@ if __name__ == '__main__':
                                     dt,
                                     retstep=True)
     h = transfer_func(f)
-    output_freq = h * input_freq
+    output_freq = h #* input_freq
     _, output = util.f_to_t(output_freq, df, retstep=False)
 
     power.plot(f,
