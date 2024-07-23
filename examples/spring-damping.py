@@ -25,13 +25,23 @@ def external_accel(t):
     '''
     # return 4e-1 * np.sin(2 * np.pi * 5e1 * t)
     return unit_pulse(t)
+    # return unit_step(t)
 
 @util.vectorize
-def unit_pulse(x: float)-> float:
+def unit_pulse(x: float, offset: float = 0.)-> float:
     '''
     Unit pulse function.
     '''
-    if x == 0:
+    if x == offset:
+        return 1.
+    return 0.
+
+@util.vectorize
+def unit_step(x: float)-> float:
+    '''
+    Unit step function.
+    '''
+    if x >= 0.1:
         return 1.
     return 0.
 
@@ -138,7 +148,7 @@ if __name__ == '__main__':
     simulation_data = {
         'parameters': {},
         'mass_block_state': {},
-        'quantized_output': {}
+        # 'quantized_output': {}
     }
     simulation_data['parameters'] = param
     simulation_data['mass_block_state'] = spring_system.simulation_data
