@@ -36,22 +36,23 @@ def vectorize(func):
     '''
 
     @wraps(func)
-    def wrapper(x):
+    def wrapper(x, *args, **kwargs):
         if np.isscalar(x):
-            return func(x)
+            return func(x, *args, **kwargs)
         else:
             vectorized_func = np.vectorize(func)
-            return vectorized_func(x)
+            return vectorized_func(x, *args, **kwargs)
 
     return wrapper
 
 
 if __name__ == '__main__':
     @vectorize
-    def unit_pulse(x):
-        if x == 0:
+    def unit_pulse(x, offset: float = 0)-> float:
+        if x == offset:
             return 1.
         return 0.
 
     t = np.linspace(0, 1, int(1e6), endpoint=False)
     print(unit_pulse(t).dtype)
+    print(unit_pulse(t, 1e-6))
