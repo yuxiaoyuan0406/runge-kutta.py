@@ -22,6 +22,7 @@ def power_and_phase(
     _f_a = np.fft.fftshift(np.fft.fft(a))
     f_a_power = np.abs(_f_a)
     f_a_phase = np.angle(_f_a)
+    f_a_phase = np.unwrap(f_a_phase)
     n = len(a)
     f = np.linspace(-.5 / dt, .5 / dt, n)
 
@@ -37,7 +38,6 @@ def power_and_phase(
         f_a_power = f_a_power[valid_indices]
         f_a_phase = f_a_phase[valid_indices]
 
-    f_a_phase = np.unwrap(f_a_phase)
     if log:
         f_a_power = 20 * np.log10(f_a_power)
 
