@@ -79,6 +79,15 @@ if __name__ == '__main__':
     dt = param['mechanic_dt']
     # dt = 1e-8
 
+    @util.vectorize
+    def exte_accel(t):
+        '''
+        external accel
+        '''
+        if t < 2*dt:
+            return 1. - np.abs(1-t/dt)
+        return 0.
+
     env = simpy.Environment(0)
     # system = module.System(env, config=param, extern_accel=external_accel)
 
@@ -92,7 +101,7 @@ if __name__ == '__main__':
         initial_state=initial_state,
         runtime=runtime,
         dt=dt,
-        input_accel=external_accel,
+        input_accel=exte_accel,
     )
 
     # env.process(spring_system.run(runtime, dt))
