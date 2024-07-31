@@ -5,13 +5,13 @@ import argparse
 import json
 import sys
 
-sys.path.append('.')
 import simpy
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
+sys.path.append('.')
 from module import SpringDampingSystem
 from module import SystemState
 import util
@@ -97,8 +97,10 @@ if __name__ == '__main__':
             return 6./dt
         return 0.
 
+    # Create simulation enviorment
     env = simpy.Environment(0)
 
+    # Initialize spring-damping module
     initial_state = np.array(param['initial_state'], dtype=np.float64)
     spring_system = SpringDampingSystem(
         env=env,
@@ -112,25 +114,30 @@ if __name__ == '__main__':
         input_accel=exte_accel,
     )
 
+    # Run simulation with a progress bar
     with tqdm(total=int(runtime / dt), desc='Running') as pbar:
         while env.now < runtime:
             env.run(until=env.now + dt)
             pbar.update(1)
 
+    # Create a data object for analysis
     disp = util.Signal(np.array(spring_system.simulation_data['position']),
                        t=np.array(spring_system.simulation_data['time']),
                        label='runge-kutta')
 
+    # Create plot curtain
     ax_time = None
     ax_power, ax_phase = None, None
 
+    # Plot result
     ax_time = disp.plot_time_domain(ax=ax_time)
     ax_power, ax_phase = disp.plot_freq_domain(ax_power=ax_power,
                                                ax_phase=ax_phase)
-
     plt.show()
 
     def save():
+        """Save result
+        """
         simulation_data = {
             'parameters': {},
             'mass_block_state': {},

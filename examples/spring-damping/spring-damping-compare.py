@@ -32,6 +32,17 @@ def argue_parser():
 
 
 def get_disp(file_name, color=None, linestyle='-', label=''):
+    """Get displacement data from file.
+
+    Args:
+        file_name (str): File path to read from.
+        color (_type_, optional): Color when plot. Defaults to None.
+        linestyle (str, optional): Linestyle when plot. Defaults to '-'.
+        label (str, optional): Signal label. Defaults to ''.
+
+    Returns:
+        util.Signan: Signal for furter shit.
+    """
     with open(file_name, 'r', encoding='utf-8') as f:
         data = json.load(f)
         f.close()
@@ -51,7 +62,6 @@ if __name__ == '__main__':
         f.close()
     param = data['parameters']
     json.dump(param, sys.stdout, indent=2)
-    # print(data['parameters'])
 
     m = param['mass']
     b = param['damping_coef']
@@ -63,13 +73,12 @@ if __name__ == '__main__':
     f_n = w_n / (2 * np.pi)
     zeta = bm / (2 * w_n)
 
-    # print(f'Natural frequency: {f_n} Hz')
-    # print(f'Damping ratio: {zeta}')
-
     mass_block_data = data['mass_block_state']
     t = np.array(mass_block_data['time'])
 
     def model(t, racio, decay, omega, phi):
+        """Fitting model. A underdamped second-order system.
+        """
         return racio * np.exp(-decay * t) * np.sin(omega * t + phi)
 
     racio = 1 / (w_n * np.sqrt(1 - zeta**2))
@@ -95,16 +104,4 @@ if __name__ == '__main__':
                  label='Ideal pulse'),
     ]
 
-    ax_time = None
-    ax_power, ax_phase = None, None
-
-    for sig in simul_list:
-        ax_time = sig.plot_time_domain(ax_time)
-        ax_power, ax_phase = sig.plot_freq_domain(ax_power=ax_power,
-                                                  ax_phase=ax_phase)
-
-    ax_time = analy.plot_time_domain(ax_time)
-    ax_power, ax_phase = analy.plot_freq_domain(ax_power=ax_power,
-                                                ax_phase=ax_phase)
-
-    plt.show()
+    util.Signal.plot_all()

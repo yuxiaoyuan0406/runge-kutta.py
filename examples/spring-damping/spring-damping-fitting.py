@@ -5,12 +5,11 @@ import argparse
 import json
 import sys
 
-sys.path.append('.')
 import numpy as np
 from scipy.optimize import curve_fit
 import matplotlib
-import matplotlib.pyplot as plt
 
+sys.path.append('.')
 import util
 
 # matplotlib.use('TkAgg')
@@ -37,7 +36,6 @@ if __name__ == '__main__':
         f.close()
     param = data['parameters']
     json.dump(param, sys.stdout, indent=2)
-    # print(data['parameters'])
 
     m = param['mass']
     b = param['damping_coef']
@@ -70,18 +68,7 @@ if __name__ == '__main__':
     popt, pcov = curve_fit(model, t, disp, p0=initial_params)
     print('Simulation of unit impulse response is:\n %.5e * exp(- %.5e * t) * sin(%.5e * t + %.5e)' % tuple(popt))
 
-    # plt.plot(t, disp, 'b-', label='Simulation data')
     simul = util.Signal(disp, t=t, color='blue', linestyle='-', label='Simulation data')
-    # plt.plot(t, model(t, *initial_params), 'r-', label='Analytical result')
     analy = util.Signal(model(t, *initial_params), t=t, color='red', linestyle='--', label='Analytical result')
 
-    ax_time = None
-    ax_power, ax_phase = None, None
-
-    ax_time = simul.plot_time_domain(ax_time)
-    ax_power, ax_phase = simul.plot_freq_domain(ax_power=ax_power, ax_phase=ax_phase)
-
-    ax_time = analy.plot_time_domain(ax_time)
-    ax_power, ax_phase = analy.plot_freq_domain(ax_power=ax_power, ax_phase=ax_phase)
-
-    plt.show()
+    util.Signal.plot_all()

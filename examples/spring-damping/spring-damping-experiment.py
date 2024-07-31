@@ -23,10 +23,6 @@ def argue_parser():
         type=str,
         help='An optional simulation parameters file in json format',
         default='parameters/default.json')
-#   parser.add_argument('--out',
-#                       type=str,
-#                       help='Data output file.',
-#                       default=f'data/{util.formatted_date_time}-data.json')
 
     return parser.parse_args()
 
@@ -35,7 +31,7 @@ if __name__ == "__main__":
 
     timestamp = util.formatted_date_time
     resultFilename = f'data/{timestamp}/simulation-result.json'
-    
+
     simulation_script_path = 'examples/spring-damping/spring-damping-simulation.py'
     fitting_script_path = 'examples/spring-damping/spring-damping-fitting.py'
 
