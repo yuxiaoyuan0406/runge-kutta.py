@@ -61,6 +61,10 @@ def argue_parser():
                         type=str,
                         help='Data output file.',
                         default=f'data/{util.formatted_date_time}-data.json')
+    parser.add_argument('--save',
+                        action='store_true',
+                        default=False,
+                        help='whether to save the simulation result')
 
     return parser.parse_args()
 
@@ -75,7 +79,7 @@ if __name__ == '__main__':
         json.dump(param, sys.stdout, indent=2)
 
     runtime = param['runtime']
-    # runtime = .01
+    # runtime = 4
     dt = param['mechanic_dt']
     # dt = 1e-8
 
@@ -84,12 +88,16 @@ if __name__ == '__main__':
         '''
         external accel
         '''
-        if t < 2*dt:
-            return 1. - np.abs(1-t/dt)
+        # if t < dt:
+            # return 1. - np.abs(1-t/dt)
+            # return 1. - t / (2 * dt)
+            # return 2. / dt * (1 - t/dt)
+            # return 1. / dt
+        if 0 <= t and t < dt/2:
+            return 6./dt
         return 0.
 
     env = simpy.Environment(0)
-    # system = module.System(env, config=param, extern_accel=external_accel)
 
     initial_state = np.array(param['initial_state'], dtype=np.float64)
     spring_system = SpringDampingSystem(
@@ -104,53 +112,21 @@ if __name__ == '__main__':
         input_accel=exte_accel,
     )
 
-    # env.process(spring_system.run(runtime, dt))
     with tqdm(total=int(runtime / dt), desc='Running') as pbar:
         while env.now < runtime:
             env.run(until=env.now + dt)
             pbar.update(1)
 
-    _, t_ax = util.plot(np.array(spring_system.simulation_data['time']),
-                        np.array(spring_system.simulation_data['position']),
-                        label='runge-kutta')
+    disp = util.Signal(np.array(spring_system.simulation_data['position']),
+                       t=np.array(spring_system.simulation_data['time']),
+                       label='runge-kutta')
 
-    power, phase = util.freq_and_plot(
-        np.array(spring_system.simulation_data['position']),
-        dt,
-        label='runge-kutta',
-        log=True,
-    )
+    ax_time = None
+    ax_power, ax_phase = None, None
 
-    def transfer_func(f):
-        w = 2 * np.pi * f
-        jw = (1j) * w
-        k = param['spring_coef']
-        b = param['damping_coef']
-        m = param['mass']
-        return 1 / (jw**2 + jw * b / m + k / m)
-
-    f, df, input_freq = util.t_to_f(external_accel(
-        np.array(spring_system.simulation_data['time'])),
-                                    dt,
-                                    retstep=True)
-    h = transfer_func(f)
-    output_freq = h #* input_freq
-    _, output = util.f_to_t(output_freq, df, retstep=False)
-
-    power.plot(f,
-               20 * np.log10(np.abs(output_freq)),
-               label='transfer function')
-    phase.plot(f, np.unwrap(np.angle(output_freq)), label='transfer function')
-    t_ax.plot(np.array(spring_system.simulation_data['time']),
-              np.real(output) + np.imag(output),
-              label='transfer function')
-
-    t_ax.legend(loc='upper right')
-    power.legend(loc='upper right')
-    phase.legend(loc='upper right')
-    t_ax.grid()
-    power.grid()
-    phase.grid()
+    ax_time = disp.plot_time_domain(ax=ax_time)
+    ax_power, ax_phase = disp.plot_freq_domain(ax_power=ax_power,
+                                               ax_phase=ax_phase)
 
     plt.show()
 
@@ -158,11 +134,10 @@ if __name__ == '__main__':
         simulation_data = {
             'parameters': {},
             'mass_block_state': {},
-            # 'quantized_output': {}
         }
         simulation_data['parameters'] = param
         simulation_data['mass_block_state'] = spring_system.simulation_data
-        # simulation_data['quantized_output'] = system.pid.simulation_data
         util.save(args.out, simulation_data)
-    
-    # save()
+
+    if args.save:
+        save()
