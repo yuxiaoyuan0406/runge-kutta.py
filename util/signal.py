@@ -48,6 +48,8 @@ class Signal:
     """Signal generation class.
     """
 
+    instances = []
+
     def __init__(
         self,
         val: np.ndarray,
@@ -82,6 +84,7 @@ class Signal:
             self.f, self.df, self.X = t_to_f(self.x, self.dt)
         else:
             return
+        Signal.instances.append(self)
 
     def plot_time_domain(self, ax=None, show=False, block=False):
         """Plot the signal in time domain
@@ -101,7 +104,10 @@ class Signal:
         else:
             fig = ax.figure  # 获取Axes所属的Figure对象
 
-        ax.plot(self.t, np.real(self.x), color=self.color, linestyle=self.linestyle,
+        ax.plot(self.t,
+                np.real(self.x),
+                color=self.color,
+                linestyle=self.linestyle,
                 label=self.label)  # 使用提供的x_data和y_data进行作图
         # ax.set_title('Data Plot')
         # ax.set_xlabel('X-Axis')
@@ -143,7 +149,7 @@ class Signal:
             plt.tight_layout()
         else:
             fig = ax_power.figure
-        
+
         # calculate white noise to avoid log(0) or arctant(y/0)
         non_zero_min = np.min(np.abs(self.X[np.abs(self.X) > 0]))
         mean_amplitude = np.mean(np.abs(self.X))
@@ -154,11 +160,13 @@ class Signal:
             self.f,
             20 * np.log10(np.abs(self.X) + epsilon),
             # np.abs(self.X),
-            color=self.color, linestyle=self.linestyle,
+            color=self.color,
+            linestyle=self.linestyle,
             label=self.label)
         ax_phase.plot(self.f,
                       np.rad2deg(np.unwrap(np.angle(self.X + epsilon))),
-                      color=self.color, linestyle=self.linestyle,
+                      color=self.color,
+                      linestyle=self.linestyle,
                       label=self.label)
 
         ax_power.legend(loc='upper right')
@@ -168,6 +176,31 @@ class Signal:
             plt.show(block=block)
 
         return ax_power, ax_phase
+
+    @classmethod
+    def plot_all(cls,
+                 ax_time=None,
+                 ax_power=None,
+                 ax_phase=None,
+                 log=True,
+                 block=True):
+        """Plot all signal in graph
+
+        Args:
+            ax_time (matplotlib.axes.Axes, optional): The axe to plot time. Defaults to None.
+            ax_power (matplotlib.axes.Axes, optional): The axe to plot power. Defaults to None.
+            ax_phase (matplotlib.axes.Axes, optional): The axe to plot phase. Defaults to None.
+            log (bool, optional): Do log on frequency scale.
+        """
+        for instance in cls.instances:
+            ax_time = instance.plot_time_domain(ax=ax_time, show=False)
+            ax_power, ax_phase = instance.plot_freq_domain(ax_power=ax_power,
+                                                           ax_phase=ax_phase,
+                                                           log=log,
+                                                           show=False)
+        plt.show(block=block)
+        return ax_time, ax_power, ax_phase
+
 
 
 class Filter:
