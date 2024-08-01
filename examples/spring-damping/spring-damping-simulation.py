@@ -115,9 +115,10 @@ if __name__ == '__main__':
     )
 
     # Run simulation with a progress bar
-    with tqdm(total=int(runtime / dt), desc='Running') as pbar:
+    time_slice = 1000
+    with tqdm(total=time_slice, desc='Running') as pbar:
         while env.now < runtime:
-            env.run(until=env.now + dt)
+            env.run(until=env.now + runtime / time_slice)
             pbar.update(1)
 
     # Create a data object for analysis
