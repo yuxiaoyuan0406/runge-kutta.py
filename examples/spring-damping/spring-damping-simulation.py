@@ -124,17 +124,13 @@ if __name__ == '__main__':
     # Create a data object for analysis
     disp = util.Signal(np.array(spring_system.simulation_data['position']),
                        t=np.array(spring_system.simulation_data['time']),
-                       label='runge-kutta')
-
-    # Create plot curtain
-    ax_time = None
-    ax_power, ax_phase = None, None
+                       label='Position')
+    velo = util.Signal(np.array(spring_system.simulation_data['velocity']),
+                       t=np.array(spring_system.simulation_data['time']),
+                       label='Velocity')
 
     # Plot result
-    ax_time = disp.plot_time_domain(ax=ax_time)
-    ax_power, ax_phase = disp.plot_freq_domain(ax_power=ax_power,
-                                               ax_phase=ax_phase)
-    plt.show()
+    util.Signal.plot_all()
 
     def save():
         """Save result
