@@ -2,3 +2,4 @@ simpy
 tqdm
 numpy
 matplotlib
+scipy
