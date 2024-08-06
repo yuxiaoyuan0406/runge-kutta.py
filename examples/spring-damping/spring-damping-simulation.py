@@ -8,7 +8,7 @@ import sys
 import simpy
 import numpy as np
 import matplotlib
-import matplotlib.pyplot as plt
+import os
 from tqdm import tqdm
 
 sys.path.append('.')
@@ -59,8 +59,8 @@ def argue_parser():
         default='parameters/default.json')
     parser.add_argument('--out',
                         type=str,
-                        help='Data output file.',
-                        default=f'data/{util.formatted_date_time}-data.json')
+                        help='Data output directory.',
+                        default=f'data/{util.formatted_date_time}')
     parser.add_argument('--save',
                         action='store_true',
                         default=False,
@@ -89,13 +89,14 @@ if __name__ == '__main__':
         external accel
         '''
         # if t < dt:
-            # return 1. - np.abs(1-t/dt)
-            # return 1. - t / (2 * dt)
-            # return 2. / dt * (1 - t/dt)
-            # return 1. / dt
-        if 0 <= t and t < dt/2:
-            return 6./dt
-        return 0.
+        # return 1. - np.abs(1-t/dt)
+        # return 1. - t / (2 * dt)
+        # return 2. / dt * (1 - t/dt)
+        # return 1. / dt
+        # if 0 <= t and t < dt/2:
+        # return 6./dt
+        # return 0.
+        return 1.
 
     # Create simulation enviorment
     env = simpy.Environment(0)
@@ -135,13 +136,8 @@ if __name__ == '__main__':
     def save():
         """Save result
         """
-        simulation_data = {
-            'parameters': {},
-            'mass_block_state': {},
-        }
-        simulation_data['parameters'] = param
-        simulation_data['mass_block_state'] = spring_system.simulation_data
-        util.save(args.out, simulation_data)
+        util.save(os.path.join(args.out, 'param.json'), param)
+        spring_system.save(os.path.join(args.out, 'mass_block'))
 
     if args.save:
         save()

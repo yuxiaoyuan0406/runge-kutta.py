@@ -4,6 +4,7 @@ Spring damping system.
 import simpy
 import numpy as np
 from .system import SystemState
+import os
 
 
 class SpringDampingSystem:
@@ -80,3 +81,15 @@ class SpringDampingSystem:
             self.system_state.mass_block_state = self.state
             self.update(dt)
             yield self.env.timeout(dt)
+    
+    def save(self, directory):
+        """Save simulation results.
+
+        Args:
+            dir (str): Directory to save.
+        """
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+        np.save(os.path.join(directory, 'time'), np.array(self.simulation_data['time']))
+        np.save(os.path.join(directory, 'position'), np.array(self.simulation_data['position']))
+        np.save(os.path.join(directory, 'velocity'), np.array(self.simulation_data['velocity']))

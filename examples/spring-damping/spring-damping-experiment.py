@@ -23,19 +23,28 @@ def argue_parser():
         type=str,
         help='An optional simulation parameters file in json format',
         default='parameters/default.json')
+    parser.add_argument(
+        '--name',
+        type=str,
+        help='Experiment name.',
+        default=''
+    )
 
     return parser.parse_args()
 
 if __name__ == "__main__":
     args = argue_parser()
 
-    timestamp = util.formatted_date_time
-    resultFilename = f'data/{timestamp}/simulation-result.json'
+    if args.name == '':
+        experiment_name = util.formatted_date_time
+    else:
+        experiment_name = args.name
+    resultDir = f'data/{experiment_name}'
 
     simulation_script_path = 'examples/spring-damping/spring-damping-simulation.py'
     fitting_script_path = 'examples/spring-damping/spring-damping-fitting.py'
 
     print('--- Running simulation ---')
-    subprocess.run(['python', simulation_script_path, '--param', args.param, '--out', resultFilename, '--save'], check=True)
+    subprocess.run(['python', simulation_script_path, '--param', args.param, '--out', resultDir, '--save'], check=True)
     print('--- Fitting result ---')
-    subprocess.run(['python', fitting_script_path, '--file', resultFilename], check=True)
+    subprocess.run(['python', fitting_script_path, '--data', resultDir], check=True)
