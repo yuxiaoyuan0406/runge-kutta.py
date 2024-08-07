@@ -88,15 +88,9 @@ if __name__ == '__main__':
         '''
         external accel
         '''
-        # if t < dt:
-        # return 1. - np.abs(1-t/dt)
-        # return 1. - t / (2 * dt)
-        # return 2. / dt * (1 - t/dt)
-        # return 1. / dt
-        # if 0 <= t and t < dt/2:
-        # return 6./dt
-        # return 0.
-        return 1.
+        if 0 <= t and t < dt/2:
+            return 6./dt
+        return 0.
 
     # Create simulation enviorment
     env = simpy.Environment(0)

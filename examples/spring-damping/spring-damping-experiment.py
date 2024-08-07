@@ -36,7 +36,7 @@ if __name__ == "__main__":
     args = argue_parser()
 
     if args.name == '':
-        experiment_name = util.formatted_date_time
+        experiment_name = f'{util.formatted_date_time}-spr-dmp'
     else:
         experiment_name = args.name
     resultDir = f'data/{experiment_name}'

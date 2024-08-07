@@ -60,7 +60,7 @@ python examples/spring-damping/spring-damping-simulation.py --save
 
 ```bash
 # in project root directory
-python examples/spring-damping/spring-damping-fitting.py --file path/to/your/result.json
+python examples/spring-damping/spring-damping-fitting.py --data path/to/your/data/
 ```
 
 ## Compare several results in one graph
