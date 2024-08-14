@@ -179,25 +179,33 @@ class Signal:
 
     @classmethod
     def plot_all(cls,
+                 lst=[],
                  ax_time=None,
                  ax_power=None,
                  ax_phase=None,
+                 title='',
                  log=True,
                  block=True):
         """Plot all signal in graph
 
         Args:
+            lst (list, optional): The list of signals to plot. Defaults to [].
             ax_time (matplotlib.axes.Axes, optional): The axe to plot time. Defaults to None.
             ax_power (matplotlib.axes.Axes, optional): The axe to plot power. Defaults to None.
             ax_phase (matplotlib.axes.Axes, optional): The axe to plot phase. Defaults to None.
             log (bool, optional): Do log on frequency scale.
         """
-        for instance in cls.instances:
+        if lst == []:
+            lst = cls.instances
+        for instance in lst:
             ax_time = instance.plot_time_domain(ax=ax_time, show=False)
             ax_power, ax_phase = instance.plot_freq_domain(ax_power=ax_power,
                                                            ax_phase=ax_phase,
                                                            log=log,
                                                            show=False)
+        if title != '':
+            ax_time.figure.canvas.manager.set_window_title(f'{title}: time domain')
+            ax_power.figure.canvas.manager.set_window_title(f'{title}: freq domain')
         plt.show(block=block)
         return ax_time, ax_power, ax_phase
 

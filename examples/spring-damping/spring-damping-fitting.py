@@ -64,16 +64,47 @@ if __name__ == '__main__':
     omega = w_n * np.sqrt(1 - zeta**2)
     phi = 0
     offset = 0
-    initial_params = [racio, decay, omega, phi, offset]
+    inpulse_params = [racio, decay, omega, phi, offset]
+    step_params = [
+        -racio / w_n, decay, omega,
+        np.arctan2(omega, decay), 1 / (omega**2)
+    ]
+
+    popt, pcov = curve_fit(model, t, disp, p0=inpulse_params)
+
     print(
         'Analytical solution of unit impulse response is:\n %.5e * exp(- %.5e * t) * sin(%.5e * t + %.5e) + %.5e'
-        % tuple(initial_params))
-    popt, pcov = curve_fit(model, t, disp, p0=initial_params)
+        % tuple(inpulse_params))
     print(
-        'Simulation of unit impulse response is:\n %.5e * exp(- %.5e * t) * sin(%.5e * t + %.5e) + %.5e'
+        'Analytical solution of unit step response is:\n %.5e * exp(- %.5e * t) * sin(%.5e * t + %.5e) + %.5e'
+        % tuple(step_params))
+    print(
+        'Simulation response is:\n %.5e * exp(- %.5e * t) * sin(%.5e * t + %.5e) + %.5e'
         % tuple(popt))
 
-    simul = util.Signal(disp, t=t, color='blue', linestyle='-', label='Simulation data')
-    analy = util.Signal(model(t, *initial_params), t=t, color='red', linestyle='--', label='Analytical result')
+    disp = util.Signal(disp,
+                       t=t,
+                       color='blue',
+                       linestyle='-',
+                       label='Simulation displacement')
+    velo = util.Signal(velo,
+                       t=t,
+                       color='green',
+                       linestyle=':',
+                       label='Simulation velocity')
+    imp_rsp = util.Signal(model(t, *inpulse_params),
+                          t=t,
+                          color='red',
+                          linestyle='--',
+                          label='Analytical result for unit impulse')
+    stp_rsp = util.Signal(model(t, *step_params),
+                          t=t,
+                          color='red',
+                          linestyle='--',
+                          label='Analytical result for unit step')
 
-    util.Signal.plot_all()
+    util.Signal.plot_all([disp, velo], title='Simulation data', block=False)
+    util.Signal.plot_all([disp, imp_rsp],
+                         title='Impulse response',
+                         block=False)
+    util.Signal.plot_all([disp, stp_rsp], title='Step response', block=True)
