@@ -130,7 +130,7 @@ if __name__ == '__main__':
     def save():
         """Save result
         """
-        util.save(os.path.join(args.out, 'param.json'), param)
+        util.save_dict(os.path.join(args.out, 'param.json'), param)
         spring_system.save(os.path.join(args.out, 'mass_block'))
 
     if args.save:

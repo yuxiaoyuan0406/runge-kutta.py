@@ -12,7 +12,7 @@ now = datetime.now()
 formatted_date_time = now.strftime('%Y%m%d-%H%M%S')
 
 
-def save(file_name: str, data: dict):
+def save_dict(file_name: str, data: dict):
     '''
     Save the given data to a file.
     '''
