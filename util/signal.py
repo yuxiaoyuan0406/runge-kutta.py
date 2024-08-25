@@ -21,7 +21,7 @@ def t_to_f(x: np.ndarray, dt: float):
                         len(x),
                         endpoint=False,
                         retstep=True)
-    X = np.fft.fftshift(np.fft.fft(x))
+    X = np.fft.fftshift(np.fft.fft(x)) * dt
     # X = np.fft.fftshift(fft(x))
     return f, df, X
 
@@ -39,7 +39,7 @@ def f_to_t(X: np.ndarray, df: float, t0: float = 0):
         np.ndarray, float, np.ndarray: time sequence, time resolution, data in time domain
     """
     t, dt = np.linspace(t0, t0 + 1 / df, len(X), endpoint=False, retstep=True)
-    x = np.fft.ifft(np.fft.ifftshift(X))
+    x = np.fft.ifft(np.fft.ifftshift(X)) * len(X) * df
     # x = ifft(np.fft.ifftshift(X))
     return t, dt, x
 
