@@ -6,7 +6,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator, FuncFormatter
 
-matplotlib.use('TkAgg')
+# matplotlib.use('TkAgg')
 
 
 def power_and_phase(
