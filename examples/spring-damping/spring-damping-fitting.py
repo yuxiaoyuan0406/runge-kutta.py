@@ -35,7 +35,7 @@ if __name__ == '__main__':
               encoding='utf-8') as f:
         param = json.load(f)
         f.close()
-    json.dump(param, sys.stdout, indent=2)
+    print(json.dumps(param, indent=2, sort_keys=True))
 
     m = param['mass']
     b = param['damping_coef']
