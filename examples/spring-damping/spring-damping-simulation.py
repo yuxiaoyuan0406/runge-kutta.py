@@ -65,23 +65,35 @@ def argue_parser():
                         action='store_true',
                         default=False,
                         help='whether to save the simulation result')
+    parser.add_argument('--verbose',
+                        action='store_true',
+                        default=False,
+                        help='Print extra info')
+    parser.add_argument('--show',
+                        action='store_true',
+                        default=False,
+                        help='Plot result')
 
     return parser.parse_args()
 
 
 if __name__ == '__main__':
     args = argue_parser()
+    verbose = args.verbose
 
-    print(f'Using parameters from file `{args.param}`.')
+    if verbose:
+        print(f'Using parameters from file `{args.param}`.')
     with open(args.param, 'r', encoding='utf-8', errors='replace') as f:
         param = json.load(f)
         f.close()
-        json.dump(param, sys.stdout, indent=2)
 
     runtime = param['runtime']
     # runtime = 4
     dt = param['mechanic_dt']
     # dt = 1e-8
+
+    if verbose:
+        print(json.dumps(param, indent=2))
 
     @util.vectorize
     def exte_accel(t):
@@ -125,7 +137,8 @@ if __name__ == '__main__':
                        label='Velocity')
 
     # Plot result
-    util.Signal.plot_all()
+    if args.show:
+        util.Signal.plot_all()
 
     def save():
         """Save result
