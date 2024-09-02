@@ -45,9 +45,11 @@ if __name__ == '__main__':
 
     w_n = np.sqrt(km)
     f_n = w_n / (2 * np.pi)
+    Q = np.sqrt(m*k) / b
     zeta = bm / (2 * w_n)
 
     print(f'Natural frequency: {f_n} Hz')
+    print(f'Quality Factor: {Q}')
     print(f'Damping ratio: {zeta}')
 
     mass_block_data = os.path.join(args.data, 'mass_block')
