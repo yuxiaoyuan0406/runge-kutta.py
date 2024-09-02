@@ -164,7 +164,8 @@ class Signal:
             linestyle=self.linestyle,
             label=self.label)
         ax_phase.plot(self.f,
-                      np.rad2deg(np.unwrap(np.angle(self.X + epsilon))),
+                      # np.rad2deg(np.unwrap(np.angle(self.X + epsilon))),
+                      np.rad2deg(np.unwrap(np.angle(self.X), discont=2 * np.pi)),
                       color=self.color,
                       linestyle=self.linestyle,
                       label=self.label)
