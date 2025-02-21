@@ -93,3 +93,23 @@ class SpringDampingSystem:
         np.save(os.path.join(directory, 'time'), np.array(self.simulation_data['time']))
         np.save(os.path.join(directory, 'position'), np.array(self.simulation_data['position']))
         np.save(os.path.join(directory, 'velocity'), np.array(self.simulation_data['velocity']))
+
+    @classmethod
+    def load_data(cls, directory):
+        """加载模拟数据。
+
+        Args:
+            directory (str): 数据存储的目录。
+
+        Returns:
+            tuple[util.Signal]: 包含位置和速度信号的元组。
+        """
+        t = np.load(os.path.join(directory, 'time.npy'))
+        posi = np.load(os.path.join(directory, 'position.npy'))
+        velo = np.load(os.path.join(directory, 'velocity.npy'))
+        # import sys
+        # sys.path.append(os.path.abspath('../..'))
+        from util import Signal
+        posi = Signal(posi, t=t)
+        velo = Signal(velo, t=t)
+        return posi, velo
