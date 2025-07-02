@@ -6,6 +6,7 @@ import simpy
 import numpy as np
 from .system import SystemState
 from .base import ModuleBase
+from .noise import Noise
 
 
 class SpringDampingSystem(ModuleBase):
@@ -24,6 +25,7 @@ class SpringDampingSystem(ModuleBase):
         runtime: float = 1.,
         dt: float = 1e-6,
         input_accel=None,
+        noise=Noise(noise_power=0, sample_time=1e-6, mean=0),
     ):
         super().__init__(env=env, runtime=runtime, dt=dt)
         self.m = mass
@@ -34,6 +36,13 @@ class SpringDampingSystem(ModuleBase):
         self.input = input_accel
         self.simulation_data = {'time': [], 'position': [], 'velocity': []}
         self.pid_cmd = int(1)
+
+        self.noise = noise
+
+    def __str__(self):
+        return f'SpringDampingSystem(m={self.m}, k={self.k}, b={self.b})'
+    def __repr__(self):
+        return self.__str__()
 
 
     def state_equation(self, state, t):
@@ -49,7 +58,7 @@ class SpringDampingSystem(ModuleBase):
             a_external = self.input(t)
         else:
             a_external = 0
-        a = a_external - (self.k * x + self.b * v) / self.m
+        a = a_external - (self.k * x + self.b * v) / self.m + self.noise.next()
 
         return np.array([v, a])
 
