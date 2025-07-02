@@ -25,13 +25,13 @@ class SpringDampingSystem(ModuleBase):
         dt: float = 1e-6,
         input_accel=None,
     ):
+        super().__init__(env=env, runtime=runtime, dt=dt)
         self.m = mass
         self.k = spring_coef
         self.b = damping_coef
         self.system_state = system_state
         self.state = initial_state
         self.input = input_accel
-        super().__init__(env=env, runtime=runtime, dt=dt)
         self.simulation_data = {'time': [], 'position': [], 'velocity': []}
         self.pid_cmd = int(1)
 
