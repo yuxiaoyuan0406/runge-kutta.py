@@ -12,7 +12,7 @@ class ModuleBase:
         self.simulation_data = {'time': [], 'output': []}
         self.runtime = runtime
         self.dt = dt
-        self.env.process(self.run())
+        self._process = self.env.process(self.run())
 
     def run(self):
         '''
