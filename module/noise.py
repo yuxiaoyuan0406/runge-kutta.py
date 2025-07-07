@@ -35,6 +35,7 @@ class Noise:
         self.mean = mean
         self._rng = np.random.default_rng(self.seed)
         self._generator = self._noise_gen()
+        self.__counter = 0
 
     def _noise_gen(self):
         while True:
@@ -48,4 +49,5 @@ class Noise:
         Raises:
             Should not raise any exceptions.
         """
+        self.__counter += 1
         return next(self._generator)
