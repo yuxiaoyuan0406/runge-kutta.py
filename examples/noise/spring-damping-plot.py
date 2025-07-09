@@ -44,19 +44,10 @@ if __name__ == '__main__':
                          linestyle=':',
                          label='Kalman filtered displacement',)
 
-    fig_time, ax_time = plt.subplots(figsize=(16, 9))
-    ax_time.grid(True)
-    ax_time.legend(loc='upper right')
-    fig_freq, (ax_power, ax_phase) = plt.subplots(2, 1, figsize=(16, 9), sharex=True)
-    ax_power.grid(True)
-    ax_phase.grid(True)
-    ax_power.set_xscale('log')
-    ax_phase.set_xscale('log')
-    ax_power.set_ylabel('dB')
-    ax_power.legend(loc='upper right')
-    ax_phase.legend(loc='upper right')
+    fig_time, ax_time = util.default_time_plot_fig()
+    fig_freq, (ax_power, ax_phase) = util.default_freq_plot_fig()
 
-    util.Signal.plot_all(ax_time=ax_time, ax_power=ax_power, ax_phase=ax_phase)
+    util.Signal.plot_all(lst=[disp, disp_k], ax_time=ax_time, ax_power=ax_power, ax_phase=ax_phase, block=True)
 
     fig_time.savefig(os.path.join(args.data, 'disp-time.png'),
                      bbox_inches='tight', dpi=300)
