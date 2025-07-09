@@ -7,6 +7,7 @@ from datetime import datetime
 import os
 from functools import wraps
 import numpy as np
+import logging
 
 now = datetime.now()
 formatted_date_time = now.strftime('%Y%m%d-%H%M%S')
@@ -45,6 +46,27 @@ def vectorize(func):
 
     return wrapper
 
+def default_logger(name: str = __name__, level: int = logging.INFO):
+    '''
+    Set up a default logger.
+    '''
+    logger = logging.getLogger(name)
+    logger.setLevel(level)
+
+    # Create console handler and set level to debug
+    ch = logging.StreamHandler()
+    ch.setLevel(level)
+
+    # Create formatter
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+    # Add formatter to ch
+    ch.setFormatter(formatter)
+
+    # Add ch to logger
+    logger.addHandler(ch)
+
+    return logger
 
 if __name__ == '__main__':
     @vectorize
