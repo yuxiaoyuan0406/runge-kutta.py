@@ -4,7 +4,7 @@ Simple plot.
 import numpy as np
 import matplotlib.pyplot as plt
 
-def default_time_plot_fig():
+def default_time_plot_fig(title: str = 'Time Series Plot'):
     """
     Creates and returns a default matplotlib figure and axis for time series plots.
 
@@ -18,9 +18,10 @@ def default_time_plot_fig():
     ax_time.grid(True)
     ax_time.legend(loc='upper right')
     ax_time.set_xlabel('Time [s]')
+    fig_time.suptitle(title, fontsize=16)
     return fig_time, ax_time
 
-def default_freq_plot_fig():
+def default_freq_plot_fig(title: str = 'Frequency Response'):
     """
     Creates a default matplotlib figure for frequency response plots with two subplots: power and phase.
 
@@ -29,7 +30,10 @@ def default_freq_plot_fig():
             - fig_freq (matplotlib.figure.Figure): The created figure.
             - (ax_power, ax_phase) (tuple of matplotlib.axes.Axes): The axes for power and phase plots.
     """
-    fig_freq, (ax_power, ax_phase) = plt.subplots(2, 1, figsize=(16, 9), sharex=True)
+    fig_freq, (ax_power, ax_phase) = plt.subplots(2,
+                                                  1,
+                                                  figsize=(16, 9),
+                                                  sharex=True)
     ax_power.grid(True)
     ax_phase.grid(True)
     ax_power.set_xscale('log')
@@ -38,8 +42,9 @@ def default_freq_plot_fig():
     ax_phase.set_xlabel('Frequency [Hz]')
     ax_power.legend(loc='upper right')
     ax_phase.legend(loc='upper right')
+    fig_freq.suptitle(title, fontsize=16)
     return fig_freq, (ax_power, ax_phase)
-    
+
 
 def plot(
     x_data: np.ndarray,  # 自变量数据
