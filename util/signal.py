@@ -211,6 +211,23 @@ class Signal:
         plt.show(block=block)
         return ax_time, ax_power, ax_phase
 
+    def __sub__(self, other: 'Signal'):
+        """Subtract two signals in time domain.
+
+        Args:
+            other (Signal): The signal to subtract.
+
+        Returns:
+            Signal: The result of subtraction.
+        """
+        if not isinstance(other, Signal):
+            raise TypeError('Can only subtract another `Signal` instance.')
+        if not np.array_equal(self.t, other.t):
+            raise ValueError(
+                'Signals must have the same time sequence to be subtracted.')
+        return Signal(self.x - other.x,
+                      t=self.t,
+                      label=f'({self.label})-({other.label})')
 
 
 class Filter:
