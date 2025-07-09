@@ -4,6 +4,8 @@ Simple plot.
 import numpy as np
 import matplotlib.pyplot as plt
 
+plt.rcParams['font.family'] = 'Times New Roman'  # 设置字体为 Times New Roman
+
 def default_time_plot_fig(title: str = 'Time Series Plot'):
     """
     Creates and returns a default matplotlib figure and axis for time series plots.
