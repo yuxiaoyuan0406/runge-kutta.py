@@ -58,8 +58,12 @@ class PID:
         self.integral2 += 0.038 * self.integral1
         feed_back = -0.01139 * self.integral2
         self.integral1 += 0.06 * feed_back + 1.55 * error
-        derivative = error - self.previous_error
+        derivative = (error - self.previous_error) * self.fs
         self.previous_error = error
+
+        # self.integral1 = self.integral1 + error
+        # derivative = error - self.previous_error
+        # self.previous_error = error
 
         self.out = self.quantizer(self.kp * error + self.ki1 * self.integral1 +
                                   self.ki2 * self.integral2 +
