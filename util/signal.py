@@ -1,3 +1,4 @@
+from typing import Optional
 import matplotlib.pyplot as plt
 import numpy as np
 # from numba import njit
@@ -165,7 +166,7 @@ class Signal:
             label=self.label)
         ax_phase.plot(self.f,
                       # np.rad2deg(np.unwrap(np.angle(self.X + epsilon))),
-                      np.rad2deg(np.unwrap(np.angle(self.X), discont=2 * np.pi)),
+                      np.rad2deg(np.unwrap(np.angle(self.X), discont=1.99 * np.pi)),
                       color=self.color,
                       linestyle=self.linestyle,
                       label=self.label)
