@@ -71,33 +71,26 @@ if __name__ == '__main__':
     #     input_force=external_force,
     # )
 
-    # env.process(spring_system.run(runtime, dt))
-    with tqdm(total=int(runtime / dt), desc='Running simulation') as pbar:
+    time_slice = 1000
+    with tqdm(total=time_slice, desc='Running') as pbar:
         while env.now < runtime:
-            env.run(until=env.now + dt)
+            env.run(until=env.now + runtime / time_slice)
             pbar.update(1)
 
-    _, t_ax = util.plot(np.array(system.spring_system.simulation_data['time']),
-                        np.array(
-                            system.spring_system.simulation_data['position']),
-                        label='Displacement')
+    disp = util.Signal(np.array(system.spring_system.simulation_data['position']),
+                       t=np.array(system.spring_system.simulation_data['time']),
+                       label='Displacement')
+#   velo = util.Signal(np.array(system.spring_system.simulation_data['velocity']),
+#                      t=np.array(system.spring_system.simulation_data['time']),
+#                      label='Velocity')
 
-    power, phase = util.freq_and_plot(
-        np.array(system.spring_system.simulation_data['position']),
-        dt,
-        log=True,
-    )
 
-    plt.legend(loc='upper right')
+    util.Signal.plot_all(block=False)
+
+    out = util.Signal(np.array(system.pid.simulation_data['output']),
+                      t=np.array(system.pid.simulation_data['time']),
+                      label='PID out')
+    out.plot_time_domain()
+    out.plot_freq_domain()
+
     plt.show()
-
-    simulation_data = {
-        'parameters': {},
-        'mass_block_state': {},
-        'quantized_output': {}
-    }
-    simulation_data['parameters'] = param
-    simulation_data['mass_block_state'] = system.spring_system.simulation_data
-    simulation_data['quantized_output'] = system.pid.simulation_data
-
-    util.save(args.out, simulation_data)
