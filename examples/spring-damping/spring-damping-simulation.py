@@ -16,7 +16,7 @@ from module import SpringDampingSystem
 from module import SystemState
 import util
 
-matplotlib.use('TkAgg')
+# matplotlib.use('TkAgg')
 
 
 def external_accel(t):
