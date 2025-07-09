@@ -70,6 +70,7 @@ class KalmanBase:
     def __init__(
         self,
         x0: np.ndarray,
+        P0: np.ndarray,
         H: np.ndarray,
         Q: np.ndarray,
         R: np.ndarray,
@@ -92,7 +93,7 @@ class KalmanBase:
             _P_pred (np.ndarray): Predicted error covariance, initialized to identity matrix.
         """
         self.x0 = x0
-        self.P0 = np.eye(x0.shape[0])
+        self.P0 = P0
         self.H = H
         self.Q = Q
         self.R = R

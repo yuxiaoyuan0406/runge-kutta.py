@@ -142,7 +142,7 @@ if __name__ == '__main__':
 
             w = state_recon[1:] - state_recon[:-1] @ self.Phi_x.T
             Q_hat = np.cov(w, rowvar=False, ddof=1)
-            super().__init__(x0=np.zeros((3, 1)), H=H, Q=Q_hat, R=np.array([0], dtype=np.float64))
+            super().__init__(x0=np.zeros((3, 1)), P0=np.eye(Q_hat.shape[0])*1e-7, H=H, Q=Q_hat, R=np.array([0], dtype=np.float64))
 
         def state_update(self, x: np.ndarray, u) -> np.ndarray:
             """
