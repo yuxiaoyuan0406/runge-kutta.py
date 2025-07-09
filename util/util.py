@@ -68,6 +68,9 @@ def default_logger(name: str = __name__, level: int = logging.INFO):
 
     return logger
 
+def now_as_seed()->int:
+    return int(datetime.now().timestamp() * 1e6)
+
 if __name__ == '__main__':
     @vectorize
     def unit_pulse(x, offset: float = 0)-> float:
