@@ -49,6 +49,9 @@ if __name__ == '__main__':
 
     util.Signal.plot_all(lst=[disp, disp_k], ax_time=ax_time, ax_power=ax_power, ax_phase=ax_phase, block=True)
 
+    disp_diff = disp_k - disp
+    util.Signal.plot_all([disp_diff])
+
     fig_time.savefig(os.path.join(args.data, 'disp-time.png'),
                      bbox_inches='tight', dpi=300)
     fig_freq.savefig(os.path.join(args.data, 'disp-freq.png'),
