@@ -1,6 +1,7 @@
 import numpy as np
 from typing import Union, Optional, Tuple, Callable
 from tqdm import tqdm
+import os
 
 
 # class KFilter:
@@ -101,6 +102,8 @@ class KalmanBase:
         self._x_pred = x0
         self._P_pred = self.P0  # Initial covariance
 
+        self.__kalman_gain_history = []  # Store Kalman gain history
+
     def state_update(self, x: np.ndarray, u) -> np.ndarray:
         """
         Update the state based on the current state and input.
@@ -141,6 +144,7 @@ class KalmanBase:
         y_tilde = y - self.observate(self._x_pred)
         S = self.H @ P @ self.H.T + self.R
         K = P @ self.H.T @ np.linalg.inv(S)  # Kalman gain
+        self.__kalman_gain_history.append(K)  # Store Kalman gain history
 
         # Update state and covariance
         x_updated = self._x_pred + K @ y_tilde
@@ -155,7 +159,7 @@ class KalmanBase:
 
         Args:
             measure (np.ndarray): Measurement vector.
-            u (Union[np.ndarray, float]): Input vector or scalar.
+            u (np.ndarray): Input vector or scalar.
 
         Returns:
             np.ndarray: Updated state estimate after applying the filter.
@@ -170,3 +174,23 @@ class KalmanBase:
                 self.predict(x_updated, control, P_updated)
                 pbar.update(1)
         return np.array(filtered)
+
+    def kalman_gain_history(self) -> np.ndarray:
+        """
+        Get the history of Kalman gains used in the filter.
+
+        Returns:
+            list[np.ndarray]: List of Kalman gain matrices.
+        """
+        return np.array(self.__kalman_gain_history)
+
+    def save_kalman_gain_history(self, path: str):
+        if not os.path.exists(path):
+            os.makedirs(path)
+        np.save(os.path.join(path, 'kalman_gain'), self.kalman_gain_history())
+
+
+    def __str__(self):
+        return f"KalmanBase(x0={self.x0}, P0={self.P0}, H={self.H}, Q={self.Q}, R={self.R})"
+    def __repr__(self):
+        return self.__str__()

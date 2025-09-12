@@ -107,6 +107,7 @@ if __name__ == '__main__':
 
     a_in = acce + km * disp + bm * velo
 
+    # Reconstructed state vector
     state_recon = np.vstack((disp, velo, a_in)).T
 
     class KFilter(kalman.KalmanBase):
@@ -168,9 +169,13 @@ if __name__ == '__main__':
 
     disp = util.Signal(disp, t=t, label='Displacement')
     filtered = util.Signal(filtered, t=t, label='Filtered Displacement')
+    diff = filtered - disp
+    diff.label = 'Difference'
 
-    util.Signal.plot_all()
+    util.Signal.plot_all([disp, filtered], block=False)
+    util.Signal.plot_all([diff])
 
     np.save(os.path.join(save_path, 'disp.npy'), filtered.x)
+    kf.save_kalman_gain_history(save_path)
 
     plt.show()
