@@ -38,7 +38,7 @@ if __name__ == '__main__':
 
     kalman_data = os.path.join(args.data, 'kalman')
     t_k = np.load(os.path.join(mass_block_data, 'time.npy'))
-    disp_k = np.load(os.path.join(mass_block_data, 'position.npy'))
+    disp_k = np.load(os.path.join(kalman_data, 'disp.npy'))
     disp_k = util.Signal(disp_k,
                          t=t_k,
                          linestyle=':',
@@ -47,13 +47,18 @@ if __name__ == '__main__':
     fig_time, ax_time = util.default_time_plot_fig()
     fig_freq, (ax_power, ax_phase) = util.default_freq_plot_fig()
 
-    util.Signal.plot_all(lst=[disp, disp_k], ax_time=ax_time, ax_power=ax_power, ax_phase=ax_phase, block=True)
+    util.Signal.plot_all(lst=[disp, disp_k], ax_time=ax_time, ax_power=ax_power, ax_phase=ax_phase, block=False)
 
     disp_diff = disp_k - disp
-    util.Signal.plot_all([disp_diff])
+    fig_diff, ax_diff = util.default_noise_plot_fig('Difference')
+    disp_diff.plot_noise(ax=ax_diff, show=True, block=True)
+    diff_asd = util.band_asd(disp_diff.x, disp_diff.dt, fmin=1e1, fmax=3e2)
+    print(f'Difference ASD mean: {diff_asd:.3e}')
 
     fig_time.savefig(os.path.join(args.data, 'disp-time.png'),
                      bbox_inches='tight', dpi=300)
     fig_freq.savefig(os.path.join(args.data, 'disp-freq.png'),
                      bbox_inches='tight', dpi=300)
+    fig_diff.savefig(os.path.join(args.data, 'disp-diff.png'),
+                      bbox_inches='tight', dpi=300)
 
