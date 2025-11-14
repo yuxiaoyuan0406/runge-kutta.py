@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 plt.rcParams['font.family'] = 'Times New Roman'  # 设置字体为 Times New Roman
+FIG_TITLE_FONT_SIZE = 16
 
 def default_time_plot_fig(title: str = 'Time Series Plot'):
     """
@@ -20,7 +21,7 @@ def default_time_plot_fig(title: str = 'Time Series Plot'):
     ax_time.grid(True)
     ax_time.legend(loc='upper right')
     ax_time.set_xlabel('Time [s]')
-    fig_time.suptitle(title, fontsize=16)
+    fig_time.suptitle(title, fontsize=FIG_TITLE_FONT_SIZE)
     return fig_time, ax_time
 
 def default_freq_plot_fig(title: str = 'Frequency Response'):
@@ -44,7 +45,7 @@ def default_freq_plot_fig(title: str = 'Frequency Response'):
     ax_phase.set_xlabel('Frequency [Hz]')
     ax_power.legend(loc='upper right')
     ax_phase.legend(loc='upper right')
-    fig_freq.suptitle(title, fontsize=16)
+    fig_freq.suptitle(title, fontsize=FIG_TITLE_FONT_SIZE)
     return fig_freq, (ax_power, ax_phase)
 
 
