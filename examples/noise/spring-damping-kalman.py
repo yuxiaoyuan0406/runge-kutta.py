@@ -98,9 +98,11 @@ if __name__ == '__main__':
     km = k / m
     dt = param['mechanic_dt']
 
-    mass_block_data = os.path.join(args.data, 'mass_block')
+    mass_block_data = os.path.join(args.data, 'zero_input')
+    logger.info('Loading zero input data from `%s`.', mass_block_data)
     t = np.load(os.path.join(mass_block_data, 'time.npy'))
     disp = np.load(os.path.join(mass_block_data, 'position.npy'))
+    logger.info('Reconstructing velocity and acceleration from displacement data for Kalman filter constructor.')
     velo = reconstruct_velocity(disp, dt)
 
     acce = reconstruct_velocity(velo, dt)
@@ -143,7 +145,10 @@ if __name__ == '__main__':
 
             w = state_recon[1:] - state_recon[:-1] @ self.Phi_x.T
             Q_hat = np.cov(w, rowvar=False, ddof=1)
-            super().__init__(x0=np.zeros((3, 1)), P0=np.eye(Q_hat.shape[0])*1e-7, H=H, Q=Q_hat, R=np.array([0], dtype=np.float64))
+            R_hat = np.cov(disp - disp.mean(), ddof=1)
+            # R_hat = param['observ_noise_level']**2 / dt
+            print(f'R = {R_hat:.3e}')
+            super().__init__(x0=np.zeros((3, 1)), P0=np.eye(Q_hat.shape[0])*1e-7, H=H, Q=Q_hat, R=np.array([[10]], dtype=np.float64)*R_hat)
 
         def state_update(self, x: np.ndarray, u) -> np.ndarray:
             """
@@ -159,10 +164,11 @@ if __name__ == '__main__':
             # where $ Q $ is the process noise covariance
             return self.Phi_x @ P @ self.Phi_x.T + self.Q
 
+    kf = KFilter()
+
     mass_block_data = os.path.join(args.data, 'nonzero_input')
     disp = np.load(os.path.join(mass_block_data, 'position.npy'))
 
-    kf = KFilter()
     logger.info('Applying Kalman filter on the displacement data.')
     filtered = kf.apply_filter(disp, np.zeros_like(disp))
     logger.info('Kalman filter applied.')
