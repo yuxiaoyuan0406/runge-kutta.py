@@ -17,5 +17,6 @@
     "area": 1.7388e-06,
     "gap": 3e-06,
     "v_ref": 2.5,
-    "noise_level": 1e-04
+    "thermal_noise_level": 0.0,
+    "observ_noise_level": 1e-5
 }
