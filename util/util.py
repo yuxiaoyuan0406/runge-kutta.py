@@ -8,6 +8,7 @@ import os
 from functools import wraps
 import numpy as np
 import logging
+from scipy import signal
 
 now = datetime.now()
 formatted_date_time = now.strftime('%Y%m%d-%H%M%S')
@@ -76,107 +77,116 @@ def now_as_seed()->int:
     return int(datetime.now().timestamp() * 1e6)
 
 def compute_asd_welch(
-    x,
-    dt,
-    nperseg=None,
-    noverlap=None,
-    window='hann',
-    detrend='constant',
-    safe_min_points=256
+    x, dt, nperseg=None, noverlap=None,
+    window='hann', detrend='constant', safe_min_points=256
 ):
-    """
-    计算 ASD（以及可选 PSD），基于 Welch 方法，自动处理一维化、NaN/Inf、参数取值等。
-    
-    参数
-    ----
-    x : array-like
-        时域噪声序列，可为 (N,) 或 (N,1) 等形状。
-    dt : float
-        采样间隔（秒），fs = 1/dt。
-    nperseg : int or None
-        Welch 分段长度。None 则自动估计（目标 8~16 段）。
-    noverlap : int or None
-        相邻段重叠点数。None 则取 nperseg//2，并确保 < nperseg。
-    window : str or array
-        Welch 窗函数（默认 'hann'）。
-    detrend : {'constant','linear',False}
-        去趋势策略。默认去均值（'constant'）。
-    safe_min_points : int
-        最小需求点数（清洗后数据若不足此数，给出友好报错）。
-
-    返回
-    ----
-    f : ndarray
-        频率轴（Hz，单边）。
-    asd : ndarray
-        ASD（单位：x 的单位 / sqrt(Hz)）。
-    psd : ndarray（当 return_psd=True）
-        PSD（单位：x 的单位^2 / Hz）。
-    info : dict
-        元信息（fs、nperseg、noverlap、实用段数、时域方差 vs 谱积分等）。
-    """
-    # 1) 一维化 + 转 numpy
-    x = np.asarray(x)
-    x = np.squeeze(x)            # 去掉多余维度，(N,1)->(N,)
+    # 一维化
+    x = np.asarray(x); x = np.squeeze(x)
     if x.ndim != 1:
         raise ValueError(f"x 应为一维，当前 shape={x.shape}")
 
-    # 2) 基础检查
     fs = 1.0 / float(dt)
     if not np.isfinite(fs) or fs <= 0:
         raise ValueError(f"非法 dt={dt}，导致 fs={fs}")
 
-    # 3) 清洗 NaN/Inf
+    # 清洗 NaN/Inf
     mask = np.isfinite(x)
     if not mask.all():
         x = x[mask]
     N = x.size
     if N < safe_min_points:
-        raise ValueError(f"有效数据点数过少：{N}（去除 NaN/Inf 之后），至少需要 {safe_min_points} 点用于稳定谱估计")
+        raise ValueError(f"有效数据点数过少：{N}，至少需要 {safe_min_points}")
 
-    # 4) 自适应 nperseg（目标 ~8~16 段）
+    # 自适应 nperseg（目标 ~8~16 段）
     if (nperseg is None) or (nperseg > N):
-        target = max(N // 12, 256)           # 目标段长：约 12 段；至少 256
-        nperseg = 2 ** int(np.floor(np.log2(min(target, N))))  # 取不超过 N 的 2^k
+        target = max(N // 12, 256)
+        nperseg = 2 ** int(np.floor(np.log2(min(target, N))))
         nperseg = max(256, min(nperseg, N))
 
-    # 5) 合法化 noverlap
+    # 合法化 noverlap
     if (noverlap is None) or (noverlap >= nperseg):
         noverlap = nperseg // 2
-    if noverlap >= nperseg:   # 极端情况下再兜底
+    if noverlap >= nperseg:
         noverlap = max(0, nperseg - 1)
 
-    # 6) Welch 计算
+    # Welch
     f, psd = signal.welch(
-        x, fs=fs, window=window,
-        nperseg=nperseg, noverlap=noverlap,
-        detrend=detrend, return_onesided=True,
-        scaling='density'   # PSD 单位：x^2 / Hz
+        x, fs=fs, window=window, nperseg=nperseg, noverlap=noverlap,
+        detrend=detrend, return_onesided=True, scaling='density'
     )
     asd = np.sqrt(psd)
 
-    # 7) 归一性自检（可用于 sanity check）
-    # 时域方差（与 detrend 一致，'constant' 相当于减均值）
+    # 自检（使用 np.trapezoid 消除弃用警告）
     x_check = x - (np.mean(x) if detrend == 'constant' else 0.0)
     var_time = np.var(x_check, ddof=0)
-    # 谱积分（近似 var_time）
-    var_spec = np.trapz(psd, f)
+    var_spec = np.trapezoid(psd, f) if len(f) > 1 else np.nan
 
     info = {
-        "fs": fs,
-        "N": N,
-        "nperseg": int(nperseg),
+        "fs": float(fs), "N": int(N), "nperseg": int(nperseg),
         "noverlap": int(noverlap),
         "segments_used": int(np.floor((N - noverlap) / (nperseg - noverlap))),
-        "window": window,
-        "detrend": detrend,
-        "var_time": float(var_time),
-        "var_spec": float(var_spec),
+        "window": window, "detrend": detrend,
+        "var_time": float(var_time), "var_spec": float(var_spec),
         "var_ratio_spec_over_time": float(var_spec / var_time) if var_time > 0 else np.nan,
         "df": float(f[1] - f[0]) if len(f) > 1 else np.nan
     }
-
     return f, asd, psd, info
+
+
+def _band_average_asd_from_spectrum(
+    f, asd, fmin, fmax, *, method="equivalent_flat", inclusive=True
+):
+    f = np.asarray(f).ravel(); asd = np.asarray(asd).ravel()
+    if f.shape != asd.shape:
+        raise ValueError(f"f 与 asd 形状不一致：{f.shape} vs {asd.shape}")
+    if f.size < 2:
+        raise ValueError("f 长度过短，无法形成频带")
+
+    lo, hi = (fmin, fmax) if fmin <= fmax else (fmax, fmin)
+    lo = max(lo, f.min()); hi = min(hi, f.max())
+    if not np.isfinite(lo) or not np.isfinite(hi) or hi <= lo:
+        raise ValueError(f"非法频带：[{fmin}, {fmax}] 与数据范围 [{f.min()}, {f.max()}] 不相交")
+
+    idx = (f >= lo) & (f <= hi) if inclusive else (f > lo) & (f < hi)
+    if not np.any(idx):
+        raise ValueError("选定频带内没有有效频点")
+
+    f_sel = f[idx]; asd_sel = asd[idx]
+
+    if method == "mean":
+        return float(np.mean(asd_sel))
+    elif method == "median":
+        return float(np.median(asd_sel))
+    elif method == "equivalent_flat":
+        # 等效平坦 ASD = sqrt(平均 PSD) = sqrt( (∫PSD df) / 带宽 )
+        if f_sel.size == 1:
+            return float(asd_sel[0])  # 退化：单 bin
+        psd_sel = asd_sel**2
+        area = float(np.trapezoid(psd_sel, f_sel))  # ∫PSD df
+        bandwidth = float(f_sel.max() - f_sel.min())
+        return float(np.sqrt(area / bandwidth))
+    else:
+        raise ValueError("method 仅支持 'equivalent_flat' | 'mean' | 'median'")
+
+
+def band_asd(
+    x, dt, fmin, fmax, *,
+    method="equivalent_flat",
+    # 下面这些可选参数透传给 Welch，保持简洁默认即可
+    nperseg=None, noverlap=None, window='hann', detrend='constant',
+    safe_min_points=256
+):
+    """
+    入口简化版：传入时域噪声序列 x、采样间隔 dt、频带 [fmin, fmax]，
+    直接返回该频带内的“平均 ASD”。
+
+    默认 method='equivalent_flat'（推荐），可改为 'mean' 或 'median'。
+    """
+    f, asd, _, _ = compute_asd_welch(
+        x, dt, nperseg=nperseg, noverlap=noverlap,
+        window=window, detrend=detrend, safe_min_points=safe_min_points
+    )
+    return _band_average_asd_from_spectrum(f, asd, fmin, fmax, method=method, inclusive=True)
 
 if __name__ == '__main__':
     @vectorize
