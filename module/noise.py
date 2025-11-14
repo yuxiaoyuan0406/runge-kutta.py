@@ -51,3 +51,22 @@ class Noise:
         """
         self.__counter += 1
         return next(self._generator)
+
+    @classmethod
+    def generate(cls, length, noise_power, sample_time, mean, shape=(1,), seed=9784):
+        """
+        生成指定长度的噪声信号。
+
+        Args:
+            length (int): 信号长度
+            noise_power (float): 噪声ASD
+            sample_time (float): 采样时间
+            mean (float): 高斯分布均值
+            shape (tuple, optional): 输出形状
+            seed (int, optional): 随机种子
+
+        Returns:
+            np.ndarray: 指定长度的噪声信号
+        """
+        noise = cls(noise_power, sample_time, mean, shape, seed)
+        return np.array([noise.next() for _ in range(length)]).reshape(length, *shape)
