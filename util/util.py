@@ -69,6 +69,10 @@ def default_logger(name: str = __name__, level: int = logging.INFO):
     return logger
 
 def now_as_seed()->int:
+    """Get current time as a seed for random number generator.
+    Returns:
+        int: Current time in microseconds since epoch.
+    """
     return int(datetime.now().timestamp() * 1e6)
 
 def compute_asd_welch(
