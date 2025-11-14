@@ -229,6 +229,33 @@ class Signal:
                       t=self.t,
                       label=f'({self.label})-({other.label})')
 
+    def __add__(self, other: 'Signal'):
+        """Add two signals in time domain.
+
+        Args:
+            other (Signal): The signal to add.
+
+        Returns:
+            Signal: The result of addition.
+        """
+        if not isinstance(other, Signal):
+            raise TypeError('Can only add another `Signal` instance.')
+        if not np.array_equal(self.t, other.t):
+            raise ValueError(
+                'Signals must have the same time sequence to be added.')
+        return Signal(self.x + other.x,
+                      t=self.t,
+                      label=f'({self.label})+({other.label})')
+
+    def __len__(self):
+        """
+        Return the number of time points in the signal.
+
+        Returns:
+            int: The length of the time array `self.t`.
+        """
+        return len(self.t)
+
 
 class Filter:
 
