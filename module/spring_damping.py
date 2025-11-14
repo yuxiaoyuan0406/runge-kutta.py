@@ -25,7 +25,8 @@ class SpringDampingSystem(ModuleBase):
         runtime: float = 1.,
         dt: float = 1e-6,
         input_accel=None,
-        noise=Noise(noise_power=0, sample_time=1e-6, mean=0),
+        thermal_noise=None,
+        output_noise=None,
     ):
         super().__init__(env=env, runtime=runtime, dt=dt)
         self.m = mass
@@ -37,7 +38,12 @@ class SpringDampingSystem(ModuleBase):
         self.simulation_data = {'time': [], 'position': [], 'velocity': []}
         self.pid_cmd = int(1)
 
-        self.noise = noise
+        if thermal_noise is None:
+            thermal_noise = Noise(noise_power=0, sample_time=dt, mean=0)
+        self.thermal_noise = thermal_noise
+        if output_noise is None:
+            output_noise = Noise(noise_power=0, sample_time=dt, mean=0)
+        self.output_noise = output_noise
 
     def __str__(self):
         return f'SpringDampingSystem(m={self.m}, k={self.k}, b={self.b})'
@@ -97,7 +103,7 @@ class SpringDampingSystem(ModuleBase):
         while self.env.now < self.runtime:
             # self.pid_cmd = yield
             self.simulation_data['time'].append(self.env.now)
-            self.simulation_data['position'].append(self.state[0])
+            self.simulation_data['position'].append(self.state[0] + self.output_noise.next() * self.m / self.k)
             self.simulation_data['velocity'].append(self.state[1])
             self.system_state.mass_block_state = self.state
             self.update()
