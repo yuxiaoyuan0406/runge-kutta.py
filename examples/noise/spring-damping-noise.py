@@ -72,24 +72,32 @@ if __name__ == '__main__':
         logger.info(json.dumps(param, indent=2))
 
 
-    def simulate(acce, noise_asd, name='Experiment'):
+    def simulate(acce, thermal_noise_asd, observ_noise_asd, name='Experiment'):
         # Create simulation enviorment
         env = simpy.Environment(0)
 
         # Initialize spring-damping module
         initial_state = np.array(param['initial_state'], dtype=np.float64)
-        spring_system = SpringDampingSystem(
-            env=env,
-            system_state=SystemState(),
-            mass=param['mass'],
-            spring_coef=param['spring_coef'],
-            damping_coef=param['damping_coef'],
-            initial_state=initial_state,
-            runtime=runtime,
-            dt=dt,
-            input_accel=acce,
-            noise=Noise(noise_power=noise_asd, sample_time=dt, mean=0, seed=util.now_as_seed())
-        )
+        spring_system = SpringDampingSystem(env=env,
+                                            system_state=SystemState(),
+                                            mass=param['mass'],
+                                            spring_coef=param['spring_coef'],
+                                            damping_coef=param['damping_coef'],
+                                            initial_state=initial_state,
+                                            runtime=runtime,
+                                            dt=dt,
+                                            input_accel=acce,
+                                            thermal_noise=Noise(
+                                                noise_power=thermal_noise_asd,
+                                                sample_time=dt,
+                                                mean=0,
+                                                seed=util.now_as_seed()),
+                                            output_noise=Noise(
+                                                noise_power=observ_noise_asd,
+                                                sample_time=dt,
+                                                mean=0,
+                                                seed=util.now_as_seed())
+                                            )
 
         # Run simulation with a progress bar
         time_slice = 1000
@@ -99,12 +107,14 @@ if __name__ == '__main__':
                 pbar.update(1)
 
         # Create a data object for analysis
-        _disp = util.Signal(np.array(spring_system.simulation_data['position']),
-                           t=np.array(spring_system.simulation_data['time']),
-                           label=f'{name}: Position')
-        _velo = util.Signal(np.array(spring_system.simulation_data['velocity']),
-                           t=np.array(spring_system.simulation_data['time']),
-                           label=f'{name}: Velocity')
+        _disp = util.Signal(np.array(
+            spring_system.simulation_data['position']),
+                            t=np.array(spring_system.simulation_data['time']),
+                            label=f'{name}: Position')
+        _velo = util.Signal(np.array(
+            spring_system.simulation_data['velocity']),
+                            t=np.array(spring_system.simulation_data['time']),
+                            label=f'{name}: Velocity')
         return _disp, _velo, spring_system
 
     # Run simulation
@@ -114,14 +124,14 @@ if __name__ == '__main__':
             return 6. / dt
         return 0
     logger.info('Running simulation with unit pulse input and no noise.')
-    disp, velo, sprint = simulate(unit_pulse, 0, name='No noise')
+    disp, velo, sprint = simulate(unit_pulse, thermal_noise_asd=0, observ_noise_asd=0, name='No noise')
     logger.info('Simulation without noise finished.')
     # Zero input
     @util.vectorize
     def zero(t):
         return 0
     logger.info('Running simulation with zero input.')
-    disp_0, velo_0, spring_0 = simulate(zero, param['noise_level'], name='Zero input')
+    disp_0, velo_0, spring_0 = simulate(zero, thermal_noise_asd=param['thermal_noise_level'], observ_noise_asd=param['observ_noise_level'], name='Zero input')
     logger.info('Simulation with zero input finished.')
 
     # Non-zero input
@@ -129,7 +139,7 @@ if __name__ == '__main__':
     def exte_accel(t):
         return 0.1 * 9.81 * np.sin(2 * np.pi * 50 * t)
     logger.info('Running simulation with non-zero input.')
-    disp_1, velo_1, spring_1 = simulate(exte_accel, param['noise_level'], name='Non-zero input')
+    disp_1, velo_1, spring_1 = simulate(exte_accel, thermal_noise_asd=param['thermal_noise_level'], observ_noise_asd=param['observ_noise_level'], name='Non-zero input')
     logger.info('Simulation with non-zero input finished.')
 
     # Plot result
