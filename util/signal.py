@@ -179,6 +179,31 @@ class Signal:
 
         return ax_power, ax_phase
 
+    def plot_noise(self, ax=None, log=True, show=False, block=False):
+        if ax is None:
+            fig, ax = plt.subplots()
+            ax.grid(True)
+            if log:
+                ax.set_xscale('log')
+            ax.set_ylabel('dB')
+            plt.tight_layout()
+        else:
+            fig = ax.figure
+
+        ax.plot(
+            self.f,
+            20 * np.log10(np.abs(self.X)),
+            color=self.color,
+            linestyle=self.linestyle,
+            label=self.label
+        )
+        ax.legend(loc='upper right')
+
+        if show:
+            plt.show(block=block)
+
+        return ax
+
     @classmethod
     def plot_all(cls,
                  lst=[],
