@@ -24,6 +24,15 @@ def default_time_plot_fig(title: str = 'Time Series Plot'):
     fig_time.suptitle(title, fontsize=FIG_TITLE_FONT_SIZE)
     return fig_time, ax_time
 
+def default_noise_plot_fig(title: str = 'Noise power'):
+    fig, ax = plt.subplots(figsize=(16,9))
+    ax.grid(True)
+    ax.set_xscale('log')
+    ax.legend(loc='upper right')
+    ax.set_xlabel('Frequency [Hz]')
+    fig.suptitle(title, fontsize=FIG_TITLE_FONT_SIZE)
+    return fig, ax
+
 def default_freq_plot_fig(title: str = 'Frequency Response'):
     """
     Creates a default matplotlib figure for frequency response plots with two subplots: power and phase.
