@@ -7,6 +7,7 @@ import matplotlib.ticker as ticker
 
 plt.rcParams['font.family'] = 'Times New Roman'  # 设置字体为 Times New Roman
 FIG_TITLE_FONT_SIZE = 16
+FIG_SIZE = (16,9)
 
 def default_time_plot_fig(title: str = 'Time Series Plot', xlabel: str = 'Time [s]', ylabel: str = ''):
     """
@@ -18,7 +19,7 @@ def default_time_plot_fig(title: str = 'Time Series Plot', xlabel: str = 'Time [
     Returns:
         tuple: A tuple containing the matplotlib Figure and Axes objects (fig_time, ax_time).
     """
-    fig_time, ax_time = plt.subplots(figsize=(16, 9))
+    fig_time, ax_time = plt.subplots(figsize=FIG_SIZE)
     ax_time.grid(True)
     ax_time.legend(loc='upper right')
     ax_time.set_xlabel(xlabel)
@@ -28,7 +29,7 @@ def default_time_plot_fig(title: str = 'Time Series Plot', xlabel: str = 'Time [
     return fig_time, ax_time
 
 def default_noise_plot_fig(title: str = 'Noise power'):
-    fig, ax = plt.subplots(figsize=(16,9))
+    fig, ax = plt.subplots(figsize=FIG_SIZE)
     ax.grid(True)
     ax.set_xscale('log')
     ax.legend(loc='upper right')
@@ -47,7 +48,7 @@ def default_freq_plot_fig(title: str = 'Frequency Response'):
     """
     fig_freq, (ax_power, ax_phase) = plt.subplots(2,
                                                   1,
-                                                  figsize=(16, 9),
+                                                  figsize=FIG_SIZE,
                                                   sharex=True)
     ax_power.grid(True)
     ax_phase.grid(True)
