@@ -36,7 +36,7 @@ class ElecFeedback:
 
         e0 = 8.854187817e-12
 
-        self.elec_force_coef = 0.5 * e0 * (2 * self.v_ref)**2 / 10
+        self.elec_force_coef = 0.5 * self.area * e0 * (2 * self.v_ref)**2
 
         self.env.process(self.run(self.fs))
 
