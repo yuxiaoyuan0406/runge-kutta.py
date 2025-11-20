@@ -86,7 +86,7 @@ class SpringDampingSystem(ModuleBase):
         k4 = self.state_equation(current_state + k3 * dt, t + dt)
 
         k = (k1 + 2 * k2 + 2 * k3 + k4) / 6
-        k += self.noise.next() * np.array([0, 1], dtype=np.float64)  # Add noise to the acceleration
+        k += self.thermal_noise.next() * np.array([0, 1], dtype=np.float64)  # Add noise to the acceleration
         predicted_state = current_state + k * dt
         return predicted_state
 
