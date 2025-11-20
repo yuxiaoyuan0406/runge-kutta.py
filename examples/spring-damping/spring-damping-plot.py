@@ -48,4 +48,24 @@ if __name__ == '__main__':
                        linestyle=':',
                        label='Simulation velocity')
 
-    util.Signal.plot_all([disp, velo], title='Simulation data', block=True)
+    # util.Signal.plot_all([disp, velo], title='Simulation data', block=True)
+
+    fig_time, ax_time = util.default_time_plot_fig()
+    fig_freq, (ax_power, ax_phase) = util.default_freq_plot_fig()
+
+    util.Signal.plot_all(lst=[disp,], ax_time=ax_time, ax_power=ax_power, ax_phase=ax_phase, block=False)
+
+    fig_time.savefig(os.path.join(args.data, 'disp-time.png'),
+                     bbox_inches='tight', dpi=300)
+    fig_freq.savefig(os.path.join(args.data, 'disp-freq.png'),
+                     bbox_inches='tight', dpi=300)
+
+    fig_time, ax_time = util.default_time_plot_fig()
+    fig_freq, (ax_power, ax_phase) = util.default_freq_plot_fig()
+
+    util.Signal.plot_all(lst=[velo,], ax_time=ax_time, ax_power=ax_power, ax_phase=ax_phase, block=True)
+
+    fig_time.savefig(os.path.join(args.data, 'velo-time.png'),
+                     bbox_inches='tight', dpi=300)
+    fig_freq.savefig(os.path.join(args.data, 'velo-freq.png'),
+                     bbox_inches='tight', dpi=300)
