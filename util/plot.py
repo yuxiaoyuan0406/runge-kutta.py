@@ -3,6 +3,7 @@ Simple plot.
 '''
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 
 plt.rcParams['font.family'] = 'Times New Roman'  # 设置字体为 Times New Roman
 FIG_TITLE_FONT_SIZE = 16
@@ -52,6 +53,17 @@ def default_freq_plot_fig(title: str = 'Frequency Response'):
     ax_phase.grid(True)
     ax_power.set_xscale('log')
     ax_phase.set_xscale('log')
+
+    # 为对数 x 轴添加次刻度（每个十进制区间 1-9）
+    ax_power.xaxis.set_minor_locator(ticker.LogLocator(base=10.0, subs=range(1, 10), numticks=12))
+    ax_phase.xaxis.set_minor_locator(ticker.LogLocator(base=10.0, subs=range(1, 10), numticks=12))
+    ax_power.minorticks_on()
+    ax_phase.minorticks_on()
+
+    # 在横坐标上显示次网格线
+    ax_power.grid(which='minor', axis='x', linestyle=':')
+    ax_phase.grid(which='minor', axis='x', linestyle=':')
+
     # ax_power.set_ylabel('dB')
     ax_phase.set_xlabel('Frequency [Hz]')
     ax_power.legend(loc='upper right')
