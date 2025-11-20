@@ -7,7 +7,7 @@ import matplotlib.ticker as ticker
 
 plt.rcParams['font.family'] = 'Times New Roman'  # 设置字体为 Times New Roman
 FIG_TITLE_FONT_SIZE = 16
-FIG_SIZE = (16,9)
+FIG_SIZE = (8,6)
 
 def default_time_plot_fig(title: str = 'Time Series Plot', xlabel: str = 'Time [s]', ylabel: str = ''):
     """
