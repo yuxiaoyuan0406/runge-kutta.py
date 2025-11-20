@@ -1,6 +1,7 @@
 '''
 Author: Yu Xiaoyuan
 '''
+import argparse
 import json
 import sys
 
@@ -18,8 +19,41 @@ import util
 
 # matplotlib.use('TkAgg')
 
-def external_force(t):
+def external_accel(t):
     return 9.8 * 0.01 * np.sin(2 * np.pi * 125 * t)
+
+
+def argue_parser():
+    '''
+    Arguements.
+    '''
+    parser = argparse.ArgumentParser(
+        description='Run simulation of a spring-damping system.')
+
+    parser.add_argument(
+        '--param',
+        type=str,
+        help='An optional simulation parameters file in json format',
+        default='parameters/xiong-2018.json')
+    parser.add_argument('--out',
+                        type=str,
+                        help='Data output directory.',
+                        default=f'data/{util.formatted_date_time}-pid-closed-loop-test')
+    parser.add_argument('--save',
+                        action='store_true',
+                        default=False,
+                        help='whether to save the simulation result')
+    parser.add_argument('--verbose',
+                        action='store_true',
+                        default=False,
+                        help='Print extra info')
+    parser.add_argument('--show',
+                        action='store_true',
+                        default=False,
+                        help='Plot result')
+
+    return parser.parse_args()
+
 
 class PID:
     
@@ -80,6 +114,14 @@ class PID:
             self.update(self.system_state.mass_block_state[0])
             yield self.env.timeout(1 / self.fs)
 
+    def save(self, directory):
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+        np.save(os.path.join(directory, 'time'),
+                np.array(self.simulation_data['time']))
+        np.save(os.path.join(directory, 'pid'),
+                np.array(self.simulation_data['output']))
+
 class System:
     """
     The whole MEMs system.
@@ -88,7 +130,7 @@ class System:
         self, 
         env: simpy.Environment,
         config: dict,
-        extern_accel=external_force,
+        extern_accel=external_accel,
     ):
         self.runtime = config['runtime']
         self.mechanic_dt = config['mechanic_dt']
@@ -140,4 +182,57 @@ class System:
         return self.extern_accel(t) + self.elec_feedback.force() / self.spring_system.m
 
 if __name__ == "__main__":
-    pass
+    args = argue_parser()
+    verbose = args.verbose
+
+    if verbose:
+        print(f'Using parameters from file `{args.param}`.')
+    with open(args.param, 'r', encoding='utf-8', errors='replace') as f:
+        param = json.load(f)
+        f.close()
+
+    runtime = param['runtime']
+
+    if verbose:
+        print(json.dumps(param, indent=2))
+
+    env = simpy.Environment(0)
+
+    simu_sys = System(
+        env=env,
+        config=param,
+        )
+
+    time_slice = 1000
+    with tqdm(total=time_slice, desc='Running') as pbar:
+        while env.now < runtime:
+            env.run(until=env.now + runtime / time_slice)
+            pbar.update(1)
+
+
+    # Create a data object for analysis
+    disp = util.Signal(np.array(simu_sys.spring_system.simulation_data['position']),
+                       t=np.array(simu_sys.spring_system.simulation_data['time']),
+                       label='Position')
+    velo = util.Signal(np.array(simu_sys.spring_system.simulation_data['velocity']),
+                       t=np.array(simu_sys.spring_system.simulation_data['time']),
+                       label='Velocity')
+    pid  = util.Signal(np.array(simu_sys.pid.simulation_data['output']),
+                       t=np.array(simu_sys.pid.simulation_data['time']),
+                       label='Velocity')
+
+
+    # Plot result
+    if args.show:
+        util.Signal.plot_all([disp, velo], block=False)
+        util.Signal.plot_all([pid])
+
+    def save():
+        """Save result
+        """
+        util.save_dict(os.path.join(args.out, 'param.json'), param)
+        simu_sys.spring_system.save(os.path.join(args.out, 'mass_block'))
+        simu_sys.pid.save(os.path.join(args.out, 'pid'))
+
+    if args.save:
+        save()
