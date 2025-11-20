@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 plt.rcParams['font.family'] = 'Times New Roman'  # 设置字体为 Times New Roman
 FIG_TITLE_FONT_SIZE = 16
 
-def default_time_plot_fig(title: str = 'Time Series Plot'):
+def default_time_plot_fig(title: str = 'Time Series Plot', xlabel: str = 'Time [s]', ylabel: str = ''):
     """
     Creates and returns a default matplotlib figure and axis for time series plots.
 
@@ -20,7 +20,9 @@ def default_time_plot_fig(title: str = 'Time Series Plot'):
     fig_time, ax_time = plt.subplots(figsize=(16, 9))
     ax_time.grid(True)
     ax_time.legend(loc='upper right')
-    ax_time.set_xlabel('Time [s]')
+    ax_time.set_xlabel(xlabel)
+    if ylabel != '':
+        ax_time.set_ylabel(ylabel)
     fig_time.suptitle(title, fontsize=FIG_TITLE_FONT_SIZE)
     return fig_time, ax_time
 
