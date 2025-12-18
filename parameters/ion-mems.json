@@ -1,0 +1,16 @@
+{
+    "runtime": 2.0,
+    "mechanic_dt": 2.44140625e-07,
+    "initial_state": [
+        0.0,
+        0.0
+    ],
+    "mass": 2.5719e-5,
+    "spring_coef": 691.3,
+    "damping_coef": 0.00235,
+    "gap": 1.545e-6,
+    "epadlenth": 0.00321,
+    "epadwidth": 0.00321,
+    "area": 1.03041e-5,
+    "numepad": 1
+}

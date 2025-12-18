@@ -1,0 +1,14 @@
+{
+    "runtime": 2.0,
+    "samp_rate": 128000.0,
+    "mass": 2.5e-5,
+    "spring_coef": 859.1382065499873,
+    "damping_coef": 0.002526815470516618,
+    "initial_state": [
+        0.0,
+        0.0
+    ],
+    "area": 1.7388e-06,
+    "gap": 1.5e-06,
+    "v_ref": 2.5
+}
