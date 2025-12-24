@@ -1,0 +1,22 @@
+[build-system]
+requires = ["scikit-build-core>=0.10", "pybind11>=2.11"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "runge-kutta.py"
+version = "0.1.0"
+requires-python = ">=3.9"
+dependencies = [
+    "numpy>=1.21",
+    "simpy>=4.0",
+    "tqdm>=4.60",
+    "matplotlib>=3.5",
+    "scipy>=1.8",
+]
+
+[tool.scikit-build]
+minimum-version = "0.10"
+wheel.packages = ["module"]
+
+[tool.scikit-build.cmake.define]
+CMAKE_EXPORT_COMPILE_COMMANDS = true
