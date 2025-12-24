@@ -13,7 +13,7 @@ public:
 
     py::array_t<double> state_equation (
         py::array_t<double, py::array::c_style | py::array::forcecast> state,
-        double t, double a_ext);
+        double a_ext);
 
 private:
     double mass;

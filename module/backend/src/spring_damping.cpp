@@ -11,7 +11,7 @@ namespace SpringDamping {
 py::array_t<double>
 SpringDampingBackend::state_equation (
     py::array_t<double, py::array::c_style | py::array::forcecast> state,
-    double t, double a_ext) {
+    double a_ext) {
     auto in = state.request ();
     if (in.ndim != 1) {
         throw std::runtime_error ("state must be a 1D array with shape (2,)");
@@ -40,5 +40,5 @@ PYBIND11_MODULE (SpringDamping, m, py::mod_gil_not_used ()) {
               py::arg ("spring_coef"), py::arg ("damping_coef"))
         .def ("state_equation",
               &SpringDamping::SpringDampingBackend::state_equation,
-              py::arg ("state"), py::arg ("t"), py::arg ("a_ext"));
+              py::arg ("state"), py::arg ("a_ext"));
 }
