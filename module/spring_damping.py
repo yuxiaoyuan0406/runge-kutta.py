@@ -8,6 +8,7 @@ from .system import SystemState
 from .base import ModuleBase
 from .noise import Noise
 
+USING_CPP_BACKEND = False
 
 class SpringDampingSystem(ModuleBase):
     '''
@@ -45,10 +46,26 @@ class SpringDampingSystem(ModuleBase):
             output_noise = Noise(noise_power=0, sample_time=dt, mean=0)
         self.output_noise = output_noise
 
+        # backend handler
+        global USING_CPP_BACKEND
+        if USING_CPP_BACKEND:
+            try: 
+                from .backend import SpringDamping
+                self.__backend = SpringDamping.SpringDampingBackend(self.m, self.k, self.b)
+                self.__state_equation = self.__backend.state_equation
+            except Exception:
+                USING_CPP_BACKEND = False
+
     def __str__(self):
         return f'SpringDampingSystem(m={self.m}, k={self.k}, b={self.b})'
     def __repr__(self):
         return self.__str__()
+
+    def __state_equation(self, state, a_ext):
+        x, v = state
+        a = a_ext - (self.k * x + self.b * v) / self.m
+
+        return np.array([v, a])
 
 
     def state_equation(self, state, t):
@@ -59,14 +76,11 @@ class SpringDampingSystem(ModuleBase):
                 ^      
         ```
         '''
-        x, v = state
         if self.input:
             a_external = self.input(t)
         else:
             a_external = 0
-        a = a_external - (self.k * x + self.b * v) / self.m
-
-        return np.array([v, a])
+        return self.__state_equation(state, a_external)
 
     def predict_state(self, dt):
         '''
