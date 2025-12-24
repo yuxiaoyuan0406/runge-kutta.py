@@ -1,0 +1,11 @@
+Language: Cpp
+BasedOnStyle: GNU
+IndentWidth: 4
+AccessModifierOffset: -4
+UseTab: false
+BreakBeforeBraces: Attach
+AllowShortIfStatementsOnASingleLine: false
+ColumnLimit: 80
+SpacesBeforeTrailingComments: 1
+IndentCaseLabels: false
+PointerBindsToType: true
