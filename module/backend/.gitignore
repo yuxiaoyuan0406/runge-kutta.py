@@ -1,0 +1,10 @@
+# cache
+.cache/
+__pycache__/
+
+# build
+build/
+*.so
+
+# compile commands
+compile_commands.json
