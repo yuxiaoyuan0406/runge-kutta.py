@@ -95,7 +95,8 @@ if __name__ == '__main__':
         param = json.load(f)
         f.close()
 
-    runtime = param['runtime']
+    # runtime = param['runtime']
+    runtime = 1
     dt = param['mechanic_dt']
 
     if verbose:
