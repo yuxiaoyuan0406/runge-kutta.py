@@ -13,10 +13,10 @@ SpringDampingBackend::state_equation (
     py::array_t<double, py::array::c_style | py::array::forcecast> state,
     double a_ext) {
     auto in = state.request ();
-    if (in.ndim != 1) {
-        throw std::runtime_error ("state must be a 1D array with shape (2,)");
-    }
-    if (in.shape[0] != 2) {
+    // if (in.ndim != 1) {
+    //     throw std::runtime_error ("state must be a 1D array with shape (2,)");
+    // }
+    if (in.shape[0] != 2 || in.ndim != 1) {
         throw std::runtime_error ("state must have shape (2,)");
     }
 
