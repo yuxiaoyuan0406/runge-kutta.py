@@ -21,10 +21,12 @@ SpringDampingBackend::state_equation (
     }
 
     py::array_t<double> out (in.shape);
-    auto outb = out.request ();
+    // auto outb = out.request ();
 
-    const double* s = static_cast<const double*> (in.ptr);
-    double* y = static_cast<double*> (outb.ptr);
+    // const double* s = static_cast<const double*> (in.ptr);
+    auto s = state.unchecked<1>();
+    // double* y = static_cast<double*> (outb.ptr);
+    auto y = out.mutable_unchecked<1>();
 
     y[0] = s[1];
     y[1] = a_ext - (spring_coef * s[0] + damping_coef * s[1]) / mass;
@@ -36,7 +38,7 @@ SpringDampingBackend::state_equation (
 PYBIND11_MODULE (SpringDamping, m, py::mod_gil_not_used ()) {
     // m.doc () = "Spring-Damping system backend implemented in C++ (pybind11)";
     py::class_<SpringDamping::SpringDampingBackend> (m, "SpringDampingBackend")
-        .def (py::init<double, double, double>(), py::arg ("mass"),
+        .def (py::init<double, double, double> (), py::arg ("mass"),
               py::arg ("spring_coef"), py::arg ("damping_coef"))
         .def ("state_equation",
               &SpringDamping::SpringDampingBackend::state_equation,
