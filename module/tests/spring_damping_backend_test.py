@@ -10,6 +10,7 @@ import numpy as np
 import matplotlib
 import os
 from tqdm import tqdm
+import time
 
 sys.path.append('.')
 import module
@@ -81,6 +82,7 @@ def argue_parser():
 
     return parser.parse_args()
 
+logger = util.default_logger(__name__, level=util.logging.INFO)
 
 if __name__ == '__main__':
     args = argue_parser()
@@ -134,10 +136,23 @@ if __name__ == '__main__':
                 pbar.update(1)
         return spring_system
 
+    logger.info('Running python backend test.')
     module.spring_damping.USING_CPP_BACKEND = False
+    t0 = time.perf_counter()
     py_backend = run_simulation()
+    tx = time.perf_counter()
+    py_time = tx-t0
+
+    logger.info('Running C++ backend test.')
     module.spring_damping.USING_CPP_BACKEND = True
+    t0 = time.perf_counter()
     c_backend = run_simulation()
+    tx = time.perf_counter()
+    cpp_time = tx-t0
+
+    logger.info('Python backend time:', py_time)
+    logger.info('C++ backend time:', cpp_time)
+    logger.info('Time reduced by ', (py_time - cpp_time) / py_time * 100, '%')
     # Create a data object for analysis
     # disp = util.Signal(np.array(spring_system.simulation_data['position']),
     #                    t=np.array(spring_system.simulation_data['time']),
