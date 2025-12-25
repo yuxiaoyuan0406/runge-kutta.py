@@ -151,9 +151,9 @@ if __name__ == '__main__':
     tx = time.perf_counter()
     cpp_time = tx-t0
 
-    logger.info('Python backend time:', py_time, 's')
-    logger.info('C++ backend time:', cpp_time, 's')
-    logger.info('Time reduced by ', (py_time - cpp_time) / py_time * 100, '%')
+    logger.info(f'Python backend time: {py_time}s')
+    logger.info(f'C++ backend time: {cpp_time}s')
+    logger.info(f'Time reduced by {(py_time - cpp_time) / py_time * 100}%')
     # Create a data object for analysis
     # disp = util.Signal(np.array(spring_system.simulation_data['position']),
     #                    t=np.array(spring_system.simulation_data['time']),
