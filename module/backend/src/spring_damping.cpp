@@ -59,7 +59,7 @@ ode4 (py::array_t<double, py::array::c_style | py::array::forcecast> _k) {
 } // namespace SpringDamping
 
 PYBIND11_MODULE (SpringDamping, m) {
-    // m.doc () = "Spring-Damping system backend implemented in C++ (pybind11)";
+    m.doc () = "Spring-Damping system backend implemented in C++ (pybind11)";
     py::class_<SpringDamping::SpringDampingBackend> (m, "SpringDampingBackend")
         .def (py::init<double, double, double> (), py::arg ("mass"),
               py::arg ("spring_coef"), py::arg ("damping_coef"))
