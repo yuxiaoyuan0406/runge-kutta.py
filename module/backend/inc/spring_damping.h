@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common.h"
+#include "pybind11/numpy.h"
 
 namespace py = pybind11;
 
@@ -20,4 +21,9 @@ private:
     double spring_coef;
     double damping_coef;
 };
+
+py::array_t<double> ode4 (
+    py::array_t<double, py::array::c_style | py::array::forcecast> _k
+);
+
 }

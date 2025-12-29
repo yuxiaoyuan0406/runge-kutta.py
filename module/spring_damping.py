@@ -53,6 +53,8 @@ class SpringDampingSystem(ModuleBase):
                 from .backend import SpringDamping
                 self.__backend = SpringDamping.SpringDampingBackend(self.m, self.k, self.b)
                 self.__state_equation = self.__backend.state_equation
+                
+                self.__ode4 = SpringDamping.ode4
             except Exception:
                 USING_CPP_BACKEND = False
 
@@ -67,6 +69,8 @@ class SpringDampingSystem(ModuleBase):
 
         return np.array([v, a])
 
+    def __ode4(self, _k):
+        return (_k[0] + 2 * _k[1] + 2 * _k[2] + _k[3]) / 6
 
     def state_equation(self, state, t):
         '''
@@ -94,12 +98,13 @@ class SpringDampingSystem(ModuleBase):
         '''
         t = self.env.now
         current_state = self.state
-        k1 = self.state_equation(current_state, t)
-        k2 = self.state_equation(current_state + k1 * dt / 2, t + dt / 2)
-        k3 = self.state_equation(current_state + k2 * dt / 2, t + dt / 2)
-        k4 = self.state_equation(current_state + k3 * dt, t + dt)
+        _k = np.empty((4, 2), dtype=np.float64)
+        _k[0] = self.state_equation(current_state, t)
+        _k[1] = self.state_equation(current_state + _k[0] * dt / 2, t + dt / 2)
+        _k[2] = self.state_equation(current_state + _k[1] * dt / 2, t + dt / 2)
+        _k[3] = self.state_equation(current_state + _k[2] * dt, t + dt)
 
-        k = (k1 + 2 * k2 + 2 * k3 + k4) / 6
+        k = self.__ode4(_k)
         k += self.thermal_noise.next() * np.array([0, 1], dtype=np.float64)  # Add noise to the acceleration
         predicted_state = current_state + k * dt
         return predicted_state

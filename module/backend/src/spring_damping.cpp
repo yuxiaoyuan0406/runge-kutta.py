@@ -1,5 +1,8 @@
 #include "../inc/spring_damping.h"
+#include "pybind11/attr.h"
 #include "pybind11/buffer_info.h"
+#include "pybind11/cast.h"
+#include "pybind11/gil.h"
 #include "pybind11/numpy.h"
 #include "pybind11/pybind11.h"
 #include <cstring>
@@ -33,6 +36,26 @@ SpringDampingBackend::state_equation (
 
     return out;
 }
+
+py::array_t<double>
+ode4 (py::array_t<double, py::array::c_style | py::array::forcecast> _k) {
+    auto buf = _k.request ();
+
+    // _k 期望是 (4,2): k1..k4，每一行是 [dx, dv]
+    if (buf.ndim != 2 || buf.shape[0] != 4 || buf.shape[1] != 2) {
+        throw std::runtime_error ("_k must have shape (4, 2)");
+    }
+
+    py::array_t<double> out ({ 2 });
+    auto k = _k.unchecked<2> ();
+    auto y = out.mutable_unchecked<1> ();
+
+    y (0) = (k (0, 0) + 2.0 * k (1, 0) + 2.0 * k (2, 0) + k (3, 0)) / 6.0;
+    y (1) = (k (0, 1) + 2.0 * k (1, 1) + 2.0 * k (2, 1) + k (3, 1)) / 6.0;
+
+    return out;
+}
+
 } // namespace SpringDamping
 
 PYBIND11_MODULE (SpringDamping, m, py::mod_gil_not_used ()) {
@@ -43,4 +66,5 @@ PYBIND11_MODULE (SpringDamping, m, py::mod_gil_not_used ()) {
         .def ("state_equation",
               &SpringDamping::SpringDampingBackend::state_equation,
               py::arg ("state"), py::arg ("a_ext"));
+    m.def ("ode4", &SpringDamping::ode4, py::arg ("_k"));
 }
