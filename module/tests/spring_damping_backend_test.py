@@ -79,6 +79,10 @@ def argue_parser():
                         action='store_true',
                         default=False,
                         help='Plot result')
+    parser.add_argument('--time',
+                        type=float,
+                        help='Simulation run time.',
+                        default=None)
 
     return parser.parse_args()
 
@@ -95,8 +99,11 @@ if __name__ == '__main__':
         param = json.load(f)
         f.close()
 
-    # runtime = param['runtime']
-    runtime = 1
+    runtime: float
+    if args.time:
+        runtime = args.time
+    else:
+        runtime = param['runtime']
     dt = param['mechanic_dt']
 
     if verbose:
