@@ -138,7 +138,9 @@ if __name__ == '__main__':
 
     # Plot result
     if args.show:
-        util.Signal.plot_all()
+        fig_time, ax_time = util.default_time_plot_fig()
+        fig_freq, (ax_power, ax_phase) = util.default_freq_plot_fig()
+        util.Signal.plot_all(lst=[disp,], ax_time=ax_time, ax_power=ax_power, ax_phase=ax_phase, block=True)
 
     def save():
         """Save result
