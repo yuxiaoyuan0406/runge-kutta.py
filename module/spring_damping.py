@@ -158,6 +158,6 @@ class SpringDampingSystem(ModuleBase):
         # import sys
         # sys.path.append(os.path.abspath('../..'))
         from util import Signal
-        posi = Signal(posi, t=t)
-        velo = Signal(velo, t=t)
+        posi = Signal(posi, t=t, label='Displacement')
+        velo = Signal(velo, t=t, label='Velocity')
         return posi, velo
