@@ -21,7 +21,7 @@ def default_time_plot_fig(title: str = 'Time Series Plot', xlabel: str = 'Time [
     """
     fig_time, ax_time = plt.subplots(figsize=FIG_SIZE)
     ax_time.grid(True)
-    ax_time.legend(loc='upper right')
+    # ax_time.legend(loc='upper right')
     ax_time.set_xlabel(xlabel)
     if ylabel != '':
         ax_time.set_ylabel(ylabel)
@@ -32,7 +32,7 @@ def default_noise_plot_fig(title: str = 'Noise power'):
     fig, ax = plt.subplots(figsize=FIG_SIZE)
     ax.grid(True)
     ax.set_xscale('log')
-    ax.legend(loc='upper right')
+    # ax.legend(loc='upper right')
     ax.set_xlabel('Frequency [Hz]')
     fig.suptitle(title, fontsize=FIG_TITLE_FONT_SIZE)
     return fig, ax
@@ -67,8 +67,8 @@ def default_freq_plot_fig(title: str = 'Frequency Response'):
 
     # ax_power.set_ylabel('dB')
     ax_phase.set_xlabel('Frequency [Hz]')
-    ax_power.legend(loc='upper right')
-    ax_phase.legend(loc='upper right')
+    # ax_power.legend(loc='upper right')
+    # ax_phase.legend(loc='upper right')
     fig_freq.suptitle(title, fontsize=FIG_TITLE_FONT_SIZE)
     return fig_freq, (ax_power, ax_phase)
 
