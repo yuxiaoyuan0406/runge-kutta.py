@@ -23,7 +23,7 @@ import json
 import io
 import os
 from collections.abc import MutableMapping
-from typing import Any, Union, TextIO
+from typing import Any, Union, TextIO, Iterator
 
 class JsonParameters(MutableMapping):
     """Load JSON parameters from a path or file-like object.
