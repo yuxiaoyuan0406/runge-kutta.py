@@ -25,7 +25,7 @@ import os
 from collections.abc import MutableMapping
 from typing import Any, Union, TextIO
 
-class Parameters(MutableMapping):
+class JsonParameters(MutableMapping):
     """Load JSON parameters from a path or file-like object.
 
     Args:
