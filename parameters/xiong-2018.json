@@ -1,6 +1,6 @@
 {
     "runtime": 2.0,
-    "mechanic_dt": 5e-07,
+    "mechanic_dt": 2.44140625e-07,
     "samp_rate": 128000.0,
     "mass": 2.5e-5,
     "spring_coef": 859.1382065499873,
