@@ -22,9 +22,10 @@ representations.
 import json
 import io
 import os
+from collections.abc import MutableMapping
 from typing import Any, Union, TextIO
 
-class Parameters:
+class Parameters(MutableMapping):
     """Load JSON parameters from a path or file-like object.
 
     Args:
@@ -96,3 +97,23 @@ class Parameters:
         # 更友好的字符串（print 调用时使用）
         path = self._path or "<file-like>"
         return f"Parameters from {path} — opened_here={self._opened_here}\n{json.dumps(self.data, indent=2)}"
+
+    def _as_dict(self) -> dict:
+        if not isinstance(self.data, dict):
+            raise TypeError(f"JsonParameters is not dict-like (data is {type(self.data).__name__})")
+        return self.data
+
+    def __getitem__(self, key: str) -> Any:
+        return self._as_dict()[key]
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        self._as_dict()[key] = value
+
+    def __delitem__(self, key: str) -> None:
+        del self._as_dict()[key]
+
+    def __iter__(self) -> Iterator[str]:
+        return iter(self._as_dict())
+
+    def __len__(self) -> int:
+        return len(self._as_dict())
