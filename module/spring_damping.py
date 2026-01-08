@@ -134,8 +134,7 @@ class SpringDampingSystem(ModuleBase):
         Args:
             dir (str): Directory to save.
         """
-        if not os.path.exists(directory):
-            os.makedirs(directory)
+        os.makedirs(directory, exist_ok=True)
         np.save(os.path.join(directory, 'time'),
                 np.array(self.simulation_data['time']))
         np.save(os.path.join(directory, 'position'),
