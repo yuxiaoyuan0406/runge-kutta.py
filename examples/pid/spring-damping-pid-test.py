@@ -220,7 +220,8 @@ def main(args):
     if verbose:
         print(f'Using parameters from file `{args.param}`.')
     with open(args.param, 'r', encoding='utf-8', errors='replace') as f:
-        param = json.load(f)
+        # param = json.load(f)
+        param = util.SpringDampingParameters(f)
         f.close()
 
     param['runtime'] = 0.01
