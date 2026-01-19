@@ -17,6 +17,8 @@
     "b1": 5.5051e-5,
     "b2": 0.005,
     "C0": 50.8e-12,
+    "Cf_comment": "Feedback capacitance in OpAmp. Used in C/V. ",
+    "Cf": 11e-12,
     "gap": 1.545e-06,
     "v_ref": 4
 }
