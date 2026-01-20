@@ -4,7 +4,43 @@ Module for electrical force feedback.
 # import numpy as np
 import simpy
 from .system import SystemState
+from .base import ModuleBase
 
+class C2V:
+    """Displacement to capacitance changement to voltage changement.
+    """    
+    def __init__(
+        self,
+        env: simpy.Environment,
+        system_state: SystemState,
+        param: dict[str, float],
+        ) -> None:
+        self.env = env
+        self.system_state = system_state
+
+        self.C0 = param['C0']
+        self.gap = param['gap']
+        self.Cf = param['Cf']
+        self.vref = param['v_ref']
+        self.vp =  self.vref
+        self.vn = -self.vref
+
+        # C to V sensitivity
+        self.k_cv = (self.vp - self.vn) / self.Cf
+
+    def x2c2v(self) -> float:
+        x = self.system_state.get_displacement()
+        u = x / self.gap
+
+        # Top capacitor and down capacitor
+        C_t = self.C0 / (1 - u)
+        C_b = self.C0 / (1 + u)
+        # Capacitance change
+        delta_C = C_t - C_b
+        # voltage change
+        delta_V = self.k_cv * delta_C
+        
+        return delta_V
 
 class ElecFeedback:
     '''
