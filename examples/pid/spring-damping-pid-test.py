@@ -9,12 +9,14 @@ import simpy
 import numpy as np
 import matplotlib
 import os
+from typing import Callable
 from tqdm import tqdm
 
 sys.path.append('.')
 import module
 from module import SpringDampingSystem
 from module import SystemState
+from module import C2V
 from module import ElecFeedback
 import util
 
@@ -66,10 +68,15 @@ class PID(module.ModuleBase):
         system_state: SystemState,
         fs: float = 128 * 1e3,
         runtime: float = 1.,
+        error_getter: Callable[[], float] | None = None,
     ) -> None:
         super().__init__(env=env, runtime=runtime+PID.PID_DELAY, dt=1/fs)
         self.system_state = system_state
         self.fs = fs
+
+        if error_getter is None:
+            error_getter = system_state.get_displacement
+        self.error_getter = error_getter
 
         self.a = [9., 28., 1.667, 0.1667, 0.0093]
         # self.a = [9., 28., 1.667, 0., 0.]
@@ -108,7 +115,7 @@ class PID(module.ModuleBase):
         yield self.env.timeout(PID.PID_DELAY)
         while self.env.now < self.runtime:
             # self.system_state.pid_cmd = self.out
-            self.update(self.system_state.mass_block_state[0])
+            self.update(self.error_getter())
             self.save_state()
             yield self.env.timeout(self.dt)
 
@@ -156,11 +163,19 @@ class TopSystem(module.ModuleBase):
             input_accel=self.__unit_step
         )
 
+        self.cv = C2V(
+            env=env,
+            system_state=self.system_state,
+            param=param
+        )
+
         self.pid = PID(
             env=env, 
             system_state=self.system_state, 
             fs=self.fs, 
-            runtime=self.runtime)
+            runtime=self.runtime,
+            error_getter=self.cv.x2c2v
+        )
     
     def __unit_pulse(self, t):
         if 0. <= t and t < self.dt:
