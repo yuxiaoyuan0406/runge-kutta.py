@@ -34,7 +34,7 @@ class SpringDampingSystem(ModuleBase):
         self.k = spring_coef
         self.b = damping_coef
         self.system_state = system_state
-        self.state = initial_state
+        self.state = np.array(initial_state)
         self.input = input_accel
         self.simulation_data = {'time': [], 'position': [], 'velocity': []}
         self.pid_cmd = int(1)
