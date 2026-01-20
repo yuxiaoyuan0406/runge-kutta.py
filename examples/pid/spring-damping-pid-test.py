@@ -61,7 +61,7 @@ def argue_parser():
 
 
 class PID(module.ModuleBase):
-    PID_DELAY = 1e-9
+    DELAY = 1e-9
     def __init__(
         self,
         env: simpy.Environment,
@@ -70,7 +70,7 @@ class PID(module.ModuleBase):
         runtime: float = 1.,
         error_getter: Callable[[], float] | None = None,
     ) -> None:
-        super().__init__(env=env, runtime=runtime+PID.PID_DELAY, dt=1/fs)
+        super().__init__(env=env, runtime=runtime+PID.DELAY, dt=1/fs)
         self.system_state = system_state
         self.fs = fs
 
@@ -108,11 +108,11 @@ class PID(module.ModuleBase):
             + self.a[4] * self.inter2
 
     def save_state(self):
-        self.simulation_data['time'].append(self.env.now - PID.PID_DELAY)
+        self.simulation_data['time'].append(self.env.now - PID.DELAY)
         self.simulation_data['output'].append(self.out)
 
     def run(self):
-        yield self.env.timeout(PID.PID_DELAY)
+        yield self.env.timeout(PID.DELAY)
         while self.env.now < self.runtime:
             # self.system_state.pid_cmd = self.out
             self.update(self.error_getter())
@@ -195,7 +195,7 @@ class TopSystem(module.ModuleBase):
     def run(self):
         '''
         '''
-        yield self.env.timeout(self.pid.PID_DELAY)
+        yield self.env.timeout(self.pid.DELAY)
         while self.env.now < self.runtime:
             yield self.env.timeout(self.dt)
 
