@@ -58,6 +58,51 @@ class SpringDampingSystem(ModuleBase):
             except Exception:
                 USING_CPP_BACKEND = False
 
+    @classmethod
+    def init_by_dict(
+        cls,
+        env: simpy.Environment,
+        system_state: SystemState,
+        param: dict[str, float],
+        input_accel=None,
+        thermal_noise=None,
+        output_noise=None,
+        ) -> "SpringDampingSystem" :
+        """Initialize a object by a `dict`.
+
+        Args:
+            env (simpy.Environment): Simulation env.
+            system_state (SystemState): Top module system state.
+            param (dict[str, float]): Parameter definations.
+            input_accel (_type_, optional): Defaults to None.
+            thermal_noise (_type_, optional): Defaults to None.
+            output_noise (_type_, optional): Defaults to None.
+
+        Returns:
+            SpringDampingSystem: The object.
+        """
+        runtime = param.get('runtime', 1.)
+        dt = param.get('mechanic_dt', 1e-6)
+        mass = param['mass']
+        spring_coef = param['spring_coef']
+        damping_coef = param['damping_coef']
+        initial_state = np.array(param.get('initial_state', [0, 0]), dtype=np.float64)
+        ret = SpringDampingSystem(
+            env=env, 
+            system_state=system_state, 
+            mass=mass,
+            spring_coef=spring_coef,
+            damping_coef=damping_coef,
+            initial_state=initial_state,
+            runtime=runtime,
+            dt=dt,
+            input_accel=input_accel,
+            thermal_noise=thermal_noise,
+            output_noise=output_noise)
+
+        return ret
+
+
     def __str__(self):
         return f'SpringDampingSystem(m={self.m}, k={self.k}, b={self.b})'
     def __repr__(self):
