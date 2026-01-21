@@ -152,6 +152,21 @@ class TopSystem(module.ModuleBase):
             param.get('initial_state', [0,0]),
             dtype=np.float64
         )
+
+        self.e_feedback = ElecFeedback(
+            env=self.env,
+            system_state=self.system_state,
+            C0=param['C0'],
+            gap=param['gap'],
+            v_ref=param['v_ref'],
+            duty_cycle=param['duty_cycle'],
+            runtime=self.runtime,
+            fs=self.fs
+        )
+
+        def acce(t, x):
+            return self.__default_sin(t) + self.e_feedback.force(x) / param['mass']
+
         self.spring_system = SpringDampingSystem(
             env=self.env,
             mass=param['mass'],
@@ -161,7 +176,7 @@ class TopSystem(module.ModuleBase):
             system_state=self.system_state,
             runtime=self.runtime,
             dt=self.mechanic_dt,
-            input_accel=self.__unit_step
+            input_accel=acce
         )
 
         self.cv = C2V(
