@@ -110,6 +110,7 @@ class PID(module.ModuleBase):
     def save_state(self):
         self.simulation_data['time'].append(self.env.now - PID.DELAY)
         self.simulation_data['output'].append(self.out)
+        self.system_state.pid_cmd = self.out
 
     def run(self):
         yield self.env.timeout(PID.DELAY)
