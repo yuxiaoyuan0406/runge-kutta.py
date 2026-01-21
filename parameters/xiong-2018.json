@@ -20,5 +20,6 @@
     "Cf_comment": "Feedback capacitance in OpAmp. Used in C/V. ",
     "Cf": 11e-12,
     "gap": 1.545e-06,
-    "v_ref": 4
+    "v_ref": 4,
+    "duty_cycle": 0.5
 }

@@ -1,6 +1,9 @@
 '''
 Spring damping system.
 '''
+import inspect
+from typing import Callable, Optional, Any
+
 import os
 import simpy
 import numpy as np
@@ -34,8 +37,9 @@ class SpringDampingSystem(ModuleBase):
         self.k = spring_coef
         self.b = damping_coef
         self.system_state = system_state
-        self.state = initial_state
-        self.input = input_accel
+        self.state = np.array(initial_state)
+        self._input_raw = input_accel
+        self.input = self._wrap_input(input_accel)
         self.simulation_data = {'time': [], 'position': [], 'velocity': []}
         self.pid_cmd = int(1)
 
@@ -57,6 +61,92 @@ class SpringDampingSystem(ModuleBase):
                 self.__ode4 = SpringDamping.ode4
             except Exception:
                 USING_CPP_BACKEND = False
+
+    @classmethod
+    def init_by_dict(
+        cls,
+        env: simpy.Environment,
+        system_state: SystemState,
+        param: dict[str, float],
+        input_accel=None,
+        thermal_noise=None,
+        output_noise=None,
+        ) -> "SpringDampingSystem" :
+        """Initialize a object by a `dict`.
+
+        Args:
+            env (simpy.Environment): Simulation env.
+            system_state (SystemState): Top module system state.
+            param (dict[str, float]): Parameter definations.
+            input_accel (_type_, optional): Defaults to None.
+            thermal_noise (_type_, optional): Defaults to None.
+            output_noise (_type_, optional): Defaults to None.
+
+        Returns:
+            SpringDampingSystem: The object.
+        """
+        runtime = param.get('runtime', 1.)
+        dt = param.get('mechanic_dt', 1e-6)
+        mass = param['mass']
+        spring_coef = param['spring_coef']
+        damping_coef = param['damping_coef']
+        initial_state = np.array(param.get('initial_state', [0, 0]), dtype=np.float64)
+        ret = SpringDampingSystem(
+            env=env, 
+            system_state=system_state, 
+            mass=mass,
+            spring_coef=spring_coef,
+            damping_coef=damping_coef,
+            initial_state=initial_state,
+            runtime=runtime,
+            dt=dt,
+            input_accel=input_accel,
+            thermal_noise=thermal_noise,
+            output_noise=output_noise)
+
+        return ret
+
+    @staticmethod
+    def _wrap_input(fn: Optional[Callable[..., float]]):
+        if fn is None:
+            return None
+
+        sig = inspect.signature(fn)
+
+        # 1) 优先尝试 (t, x) 两个位置参数（最通用：不依赖参数名）
+        try:
+            sig.bind(0.0, 0.0)
+            mode = "pos2"
+        except TypeError:
+            # 2) 再尝试仅 (t)
+            try:
+                sig.bind(0.0)
+                mode = "pos1"
+            except TypeError:
+                # 3) 再尝试关键字（适配 def f(t, *, x): ... 或 def f(*, t, x): ...）
+                try:
+                    sig.bind(t=0.0, x=0.0)
+                    mode = "kw_tx"
+                except TypeError:
+                    # 兜底：让错误尽早暴露
+                    raise TypeError(
+                        "input_accel must be callable like f(t) or f(t, x) (or accept keywords t,x)."
+                    )
+
+        if mode == "pos2":
+            def _call(t: float, x: float, state: Any):
+                return fn(t, x)
+            return _call
+
+        if mode == "kw_tx":
+            def _call(t: float, x: float, state: Any):
+                return fn(t=t, x=x)
+            return _call
+
+        # mode == "pos1"
+        def _call(t: float, x: float, state: Any):
+            return fn(t)
+        return _call
 
     def __str__(self):
         return f'SpringDampingSystem(m={self.m}, k={self.k}, b={self.b})'
@@ -81,7 +171,7 @@ class SpringDampingSystem(ModuleBase):
         ```
         '''
         if self.input:
-            a_external = self.input(t)
+            a_external = self.input(t, state[0], state)
         else:
             a_external = 0
         return self.__state_equation(state, a_external)

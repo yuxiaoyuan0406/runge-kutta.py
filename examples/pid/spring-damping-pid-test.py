@@ -9,12 +9,14 @@ import simpy
 import numpy as np
 import matplotlib
 import os
+from typing import Callable
 from tqdm import tqdm
 
 sys.path.append('.')
 import module
 from module import SpringDampingSystem
 from module import SystemState
+from module import C2V
 from module import ElecFeedback
 import util
 
@@ -59,17 +61,22 @@ def argue_parser():
 
 
 class PID(module.ModuleBase):
-    PID_DELAY = 1e-9
+    DELAY = 1e-9
     def __init__(
         self,
         env: simpy.Environment,
         system_state: SystemState,
         fs: float = 128 * 1e3,
         runtime: float = 1.,
+        error_getter: Callable[[], float] | None = None,
     ) -> None:
-        super().__init__(env=env, runtime=runtime+PID.PID_DELAY, dt=1/fs)
+        super().__init__(env=env, runtime=runtime+PID.DELAY, dt=1/fs)
         self.system_state = system_state
         self.fs = fs
+
+        if error_getter is None:
+            error_getter = system_state.get_displacement
+        self.error_getter = error_getter
 
         self.a = [9., 28., 1.667, 0.1667, 0.0093]
         # self.a = [9., 28., 1.667, 0., 0.]
@@ -101,14 +108,15 @@ class PID(module.ModuleBase):
             + self.a[4] * self.inter2
 
     def save_state(self):
-        self.simulation_data['time'].append(self.env.now - PID.PID_DELAY)
+        self.simulation_data['time'].append(self.env.now - PID.DELAY)
         self.simulation_data['output'].append(self.out)
+        self.system_state.pid_cmd = self.out
 
     def run(self):
-        yield self.env.timeout(PID.PID_DELAY)
+        yield self.env.timeout(PID.DELAY)
         while self.env.now < self.runtime:
             # self.system_state.pid_cmd = self.out
-            self.update(self.system_state.mass_block_state[0])
+            self.update(self.error_getter())
             self.save_state()
             yield self.env.timeout(self.dt)
 
@@ -144,6 +152,21 @@ class TopSystem(module.ModuleBase):
             param.get('initial_state', [0,0]),
             dtype=np.float64
         )
+
+        self.e_feedback = ElecFeedback(
+            env=self.env,
+            system_state=self.system_state,
+            C0=param['C0'],
+            gap=param['gap'],
+            v_ref=param['v_ref'],
+            duty_cycle=param['duty_cycle'],
+            runtime=self.runtime,
+            fs=self.fs
+        )
+
+        def acce(t, x):
+            return self.__default_sin(t) + self.e_feedback.force(x) / param['mass']
+
         self.spring_system = SpringDampingSystem(
             env=self.env,
             mass=param['mass'],
@@ -153,14 +176,22 @@ class TopSystem(module.ModuleBase):
             system_state=self.system_state,
             runtime=self.runtime,
             dt=self.mechanic_dt,
-            input_accel=self.__unit_step
+            input_accel=acce
+        )
+
+        self.cv = C2V(
+            env=env,
+            system_state=self.system_state,
+            param=param
         )
 
         self.pid = PID(
             env=env, 
             system_state=self.system_state, 
             fs=self.fs, 
-            runtime=self.runtime)
+            runtime=self.runtime,
+            error_getter=self.cv.x2c2v
+        )
     
     def __unit_pulse(self, t):
         if 0. <= t and t < self.dt:
@@ -175,12 +206,12 @@ class TopSystem(module.ModuleBase):
             return 0.1*9.81
     
     def __default_sin(self, t):
-        return np.sin(2*np.pi*1e3*t)
+        return 9.81*np.sin(2*np.pi*125*t)
     
     def run(self):
         '''
         '''
-        yield self.env.timeout(self.pid.PID_DELAY)
+        yield self.env.timeout(self.pid.DELAY)
         while self.env.now < self.runtime:
             yield self.env.timeout(self.dt)
 
@@ -284,11 +315,21 @@ def plot(args):
     fig_disp, ax_time = util.default_time_plot_fig()
     data.displacement.plot_time_domain(ax=ax_time, show=True)
     
-    fig_pid, ax_time = util.default_time_plot_fig()
+    fig_pid, ax_time = util.default_time_plot_fig(
+        title="Comparison of MATLAB and mine"
+    )
     data.pid.plot_time_domain(ax=ax_time, show=False)
-    matlab_pid.plot_time_domain(ax=ax_time, show=True, block=True)
+    matlab_pid.plot_time_domain(ax=ax_time, show=True)
 
-    fig_pid.savefig(os.path.join(data_path, 'pid-time.png'),
+    fig_diff, ax_diff = util.default_time_plot_fig(
+        title="Difference (matlab - mine)"
+    )
+    diff = matlab_pid - data.pid
+    diff.plot_time_domain(ax=ax_diff, show=True, block=True)
+
+    fig_pid.savefig( os.path.join(data_path, 'pid-time.png'),
+                    bbox_inches='tight', dpi=300)
+    fig_diff.savefig(os.path.join(data_path, 'pid-diff.png'),
                     bbox_inches='tight', dpi=300)
 
 if __name__ == "__main__":

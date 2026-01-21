@@ -12,8 +12,11 @@ class SystemState:
     Class to store some shared system state between modules.
     '''
     mass_block_state: np.ndarray = np.array([0, 0], np.float64)
-    pid_cmd: int = 1
+    pid_cmd: float = 0
     elec_feedback_enable = True
+
+    def get_displacement(self) -> float:
+        return self.mass_block_state[0]
 
     # def __init__(
     #         self,
