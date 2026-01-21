@@ -315,11 +315,21 @@ def plot(args):
     fig_disp, ax_time = util.default_time_plot_fig()
     data.displacement.plot_time_domain(ax=ax_time, show=True)
     
-    fig_pid, ax_time = util.default_time_plot_fig()
+    fig_pid, ax_time = util.default_time_plot_fig(
+        title="Comparison of MATLAB and mine"
+    )
     data.pid.plot_time_domain(ax=ax_time, show=False)
-    matlab_pid.plot_time_domain(ax=ax_time, show=True, block=True)
+    matlab_pid.plot_time_domain(ax=ax_time, show=True)
 
-    fig_pid.savefig(os.path.join(data_path, 'pid-time.png'),
+    fig_diff, ax_diff = util.default_time_plot_fig(
+        title="Difference (matlab - mine)"
+    )
+    diff = matlab_pid - data.pid
+    diff.plot_time_domain(ax=ax_diff, show=True, block=True)
+
+    fig_pid.savefig( os.path.join(data_path, 'pid-time.png'),
+                    bbox_inches='tight', dpi=300)
+    fig_diff.savefig(os.path.join(data_path, 'pid-diff.png'),
                     bbox_inches='tight', dpi=300)
 
 if __name__ == "__main__":
