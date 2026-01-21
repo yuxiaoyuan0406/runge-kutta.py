@@ -1,6 +1,7 @@
 from typing import Optional
 import matplotlib.pyplot as plt
 import numpy as np
+import warnings
 # from numba import njit
 
 EPSILON = 1e-12  # To avoid calculate log of zero
@@ -248,9 +249,18 @@ class Signal:
         if not isinstance(other, Signal):
             raise TypeError('Can only subtract another `Signal` instance.')
         if not np.array_equal(self.t, other.t):
-            raise ValueError(
-                'Signals must have the same time sequence to be subtracted.')
-        return Signal(self.x - other.x,
+            warnings.warn(
+                f"Time sequences differ: minuend='{self.label}', "
+                f"subtrahend='{other.label}'. "
+                "Subtrahend will be interpolated to minuend's time base.",
+                category=RuntimeWarning,
+                stacklevel=2,
+            )
+            other_x = np.interp(self.t, other.t, other.x)
+        else:
+            other_x = other.x
+
+        return Signal(self.x - other_x,
                       t=self.t,
                       label=f'({self.label})-({other.label})')
 
@@ -266,9 +276,18 @@ class Signal:
         if not isinstance(other, Signal):
             raise TypeError('Can only add another `Signal` instance.')
         if not np.array_equal(self.t, other.t):
-            raise ValueError(
-                'Signals must have the same time sequence to be added.')
-        return Signal(self.x + other.x,
+            warnings.warn(
+                f"Time sequences differ: augend='{self.label}', "
+                f"addend='{other.label}'. "
+                "Addend will be interpolated to augend's time base.",
+                category=RuntimeWarning,
+                stacklevel=2,
+            )
+            other_x = np.interp(self.t, other.t, other.x)
+        else:
+            other_x = other.x
+
+        return Signal(self.x + other_x,
                       t=self.t,
                       label=f'({self.label})+({other.label})')
 
