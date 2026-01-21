@@ -206,7 +206,7 @@ class TopSystem(module.ModuleBase):
             return 0.1*9.81
     
     def __default_sin(self, t):
-        return np.sin(2*np.pi*1e3*t)
+        return 9.81*np.sin(2*np.pi*125*t)
     
     def run(self):
         '''
