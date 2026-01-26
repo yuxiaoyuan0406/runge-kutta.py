@@ -2,6 +2,7 @@ from typing import Optional
 import matplotlib.pyplot as plt
 import numpy as np
 import warnings
+from .plot import *
 # from numba import njit
 
 EPSILON = 1e-12  # To avoid calculate log of zero
@@ -101,8 +102,7 @@ class Signal:
         """
         # 检查是否提供了Axes对象，如果没有则创建新的Figure和Axes
         if ax is None:
-            fig, ax = plt.subplots()
-            ax.grid(True)
+            fig, ax = default_time_plot_fig(ylabel=self.label)
         else:
             fig = ax.figure  # 获取Axes所属的Figure对象
 
@@ -141,14 +141,7 @@ class Signal:
             Matplotlib axes.
         """
         if ax_power is None or ax_phase is None:
-            fig, (ax_power, ax_phase) = plt.subplots(2, 1, sharex=True)
-            ax_power.grid(True)
-            ax_phase.grid(True)
-            if log:
-                ax_power.set_xscale('log')
-                ax_phase.set_xscale('log')
-            ax_power.set_ylabel('dB')
-            plt.tight_layout()
+            fig, (ax_power, ax_phase) = default_freq_plot_fig()
         else:
             fig = ax_power.figure
 
@@ -182,12 +175,7 @@ class Signal:
 
     def plot_noise(self, ax=None, log=True, show=False, block=False):
         if ax is None:
-            fig, ax = plt.subplots()
-            ax.grid(True)
-            if log:
-                ax.set_xscale('log')
-            ax.set_ylabel('dB')
-            plt.tight_layout()
+            fig, ax = default_noise_plot_fig()
         else:
             fig = ax.figure
 
