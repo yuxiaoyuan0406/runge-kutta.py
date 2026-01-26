@@ -285,9 +285,9 @@ def main(args):
 
     # Plot result
     if args.show:
-        fig_time, ax_time = util.default_time_plot_fig()
-        pid_out.plot_time_domain(ax=ax_time, show=True, block=False)
-        fig_time, ax_time = util.default_time_plot_fig()
+        fig_time, ax_time = util.default_time_plot_fig(title='PID')
+        pid_out.plot_step(ax=ax_time, show=True, block=False)
+        fig_time, ax_time = util.default_time_plot_fig(title='Displacement')
         disp.plot_time_domain(ax=ax_time, show=True, block=True)
 
 
@@ -318,14 +318,14 @@ def plot(args):
     fig_pid, ax_time = util.default_time_plot_fig(
         title="Comparison of MATLAB and mine"
     )
-    data.pid.plot_time_domain(ax=ax_time, show=False)
-    matlab_pid.plot_time_domain(ax=ax_time, show=True)
+    data.pid.plot_step(ax=ax_time, show=False)
+    matlab_pid.plot_step(ax=ax_time, show=True)
 
     fig_diff, ax_diff = util.default_time_plot_fig(
         title="Difference (matlab - mine)"
     )
     diff = matlab_pid - data.pid
-    diff.plot_time_domain(ax=ax_diff, show=True, block=True)
+    diff.plot_step(ax=ax_diff, show=True, block=True)
 
     fig_pid.savefig( os.path.join(data_path, 'pid-time.png'),
                     bbox_inches='tight', dpi=300)

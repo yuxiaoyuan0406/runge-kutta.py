@@ -73,7 +73,7 @@ def default_freq_plot_fig(title: str = 'Frequency Response'):
     return fig_freq, (ax_power, ax_phase)
 
 
-def plot(
+def __plot(
     x_data: np.ndarray,  # 自变量数据
     y_data: np.ndarray,  # 因变量数据
     label: str = 'Data',
