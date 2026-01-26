@@ -122,6 +122,40 @@ class Signal:
 
         return ax  # 返回Axes对象
 
+    def plot_step(self, ax=None, where='post', show=False, block=False):
+        """Plot the signal in time domain with step-style(ZOH, zero order hold).
+
+        Args:
+            ax (matplotlib.axes.Axes, optional): The figure to plot on. Defaults to None.
+            where (str, optional): Define where the steps should be placed. Defaults to 'post'.
+            show (bool, optional): Show. Defaults to False.
+            block (bool, optional): Block. Defaults to False.
+
+        Returns:
+            Matplotlib axes.
+        """
+        # 检查是否提供了Axes对象，如果没有则创建新的Figure和Axes
+        if ax is None:
+            fig, ax = default_time_plot_fig(ylabel=self.label)
+        else:
+            fig = ax.figure  # 获取Axes所属的Figure对象
+
+        ax.step(self.t,
+                np.real(self.x),
+                color=self.color,
+                linestyle=self.linestyle,
+                label=self.label)  # 使用提供的x_data和y_data进行作图
+        # ax.set_title('Data Plot')
+        # ax.set_xlabel('X-Axis')
+        # ax.set_ylabel('Y-Axis')
+        ax.legend(loc='upper right')
+
+        plt.tight_layout()
+        if show:
+            plt.show(block=block)
+
+        return ax  # 返回Axes对象
+
     def plot_freq_domain(self,
                          ax_power=None,
                          ax_phase=None,
