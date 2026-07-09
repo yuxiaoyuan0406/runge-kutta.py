@@ -81,7 +81,7 @@ class Signal:
                     f'`val` and `t` must have same length, but have length {len(val)} and {len(t)}'
                 )
             self.t = np.array(t)
-            self.t = self.t - self.t[0]
+            # self.t = self.t - self.t[0]
             self.dt = t[1] - t[0]
             self.x = np.array(val)
             self.f, self.df, self.X = t_to_f(self.x, self.dt)
