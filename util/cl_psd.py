@@ -162,3 +162,103 @@ def win_bh7(N: int) -> np.ndarray:
     return W.astype(np.float64)
 
 
+def bitstream_psd_fn_analogcl(output_g, fl=None, fh=None, *, show_plot=True):
+    """
+    Python equivalent of the provided MATLAB function bitstreamPSDfn_analogcl.
+
+    Parameters
+    ----------
+    output_g : array-like
+        Time series already in unit of g (continuous-valued output).
+    fl, fh : float
+        Noise-floor band edges in Hz. Defaults: fl=20, fh=200 (matching MATLAB).
+    show_plot : bool
+        If True, plot PSD in dB scale vs log-frequency (matching MATLAB).
+
+    Returns
+    -------
+    freq : np.ndarray
+        Frequency axis (Hz), one-sided.
+    psd : np.ndarray
+        One-sided PSD (g^2/Hz).
+    nf_db : float
+        Noise floor in dB, computed as 10*log10(mean(psd[fl..fh])).
+    """
+    if output_g is None:
+        raise ValueError("requires input data array")
+
+    # Match MATLAB nargin defaults
+    if fl is None and fh is None:
+        fl = 20
+        fh = 200
+    elif fl is not None and fh is None:
+        fh = 200
+    elif fl is None and fh is not None:
+        # MATLAB 里不存在这种调用方式（因为 nargin=2 时是 fl, fh），这里给个合理兜底
+        fl = 20
+
+    x = np.asarray(output_g, dtype=np.float64).reshape(-1)
+    N = x.size
+
+    fs = 128000.0
+    Nfft = int(round(0.512 * 2 * fs))  # = 131072, keep author choice
+
+    # PSD estimation (one-sided), density scaling
+    if N < Nfft:
+        w = win_bh7(N)
+        freq, psd = signal.periodogram(
+            x,
+            fs=fs,
+            window=w,
+            nfft=N,               # MATLAB: periodogram(x, WinBH7(N), N, fs)
+            detrend=False,        # "不去均值/不去趋势"
+            return_onesided=True,
+            scaling="density",
+        )
+    else:
+        w = win_bh7(Nfft)
+        freq, psd = signal.welch(
+            x,
+            fs=fs,
+            window=w,
+            nperseg=Nfft,         # MATLAB: WinBH7(Nfft)
+            noverlap=Nfft // 2,   # MATLAB: Nfft/2
+            nfft=Nfft,            # MATLAB: Nfft
+            detrend=False,        # "不去均值/不去趋势"
+            return_onesided=True,
+            scaling="density",
+        )
+
+    # Noise floor (keep MATLAB method)
+    band_mask = (freq >= float(fl)) & (freq <= float(fh))
+    if not np.any(band_mask):
+        nf_db = float("nan")
+    else:
+        nf_db = 10.0 * np.log10(np.mean(psd[band_mask]))
+
+    print(f"Noise Floor ({fl}-{fh}Hz): {np.round(nf_db, 1)}")
+
+    if show_plot:
+        plt.figure()
+        plt.semilogx(freq, 10.0 * np.log10(psd))
+        plt.xlim([1, 1e5])
+        plt.ylim([-200, 20])
+        plt.xlabel("Frequency (Hz)")
+        plt.ylabel(r"1-sided Spectrum Level (dBg/$\sqrt{Hz}$)")
+        plt.grid(True, which="both")
+        plt.title(f"Closed-loop output PSD, fs = {int(fs)} Hz")
+        plt.text(
+            1.1, 10,
+            f"Noise Floor ({fl}-{fh}Hz): {int(np.round(nf_db))}",
+            fontsize=10, fontweight="bold"
+        )
+        plt.text(
+            1.1, 0,
+            "File",
+            fontsize=10, fontweight="bold"
+        )
+        plt.show()
+
+    return freq, psd, nf_db
+
+
