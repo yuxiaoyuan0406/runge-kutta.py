@@ -15,3 +15,9 @@ dist/
 *dist/
 *.bin
 *.spec
+
+# images
+*.png
+*.jpg
+*.bmp
+figures/

@@ -1,0 +1,77 @@
+{
+  "_instructions": [
+    "Section 9 parameter block of the development task sheet.",
+    "Every null entry must be filled by the user; nothing here is a device value.",
+    "Run `python examples/kalman_accelerometer/main.py params --config <this file>`",
+    "to list the entries that are still missing."
+  ],
+  "_units": {
+    "fs": "Hz",
+    "Ts": "s, must satisfy fs * Ts = 1",
+    "m": "kg",
+    "c": "N*s/m",
+    "k": "N/m",
+    "K_u": "N per control unit, signed",
+    "k_cv": "digital per m (displacement to analog to digital chain included)",
+    "k_adc": "control unit per digital error",
+    "K_p": "control unit per digital error, discrete",
+    "K_i": "control unit per digital error, discrete, already contains any Ts factor",
+    "K_d": "control unit per digital error, discrete, already contains any Ts factor",
+    "sigma_n2": "(digital error)^2, discrete variance, never rescaled by fs",
+    "mechanical_noise_psd": "N^2/Hz when mechanical_noise_unit is force, (m/s^2)^2/Hz when it is accel",
+    "q_a": "(m/s^2)^2 per sample",
+    "X0_hat": "five entries: [x, v, a, I, e[-1]]",
+    "P0": "5x5 covariance of X0_hat"
+  },
+  "fs": null,
+  "Ts": null,
+  "m": null,
+  "c": null,
+  "k": null,
+  "K_u": null,
+  "k_cv": null,
+  "k_adc": null,
+  "K_p": null,
+  "K_i": null,
+  "K_d": null,
+  "sigma_n2": null,
+  "mechanical_noise_psd": null,
+  "mechanical_noise_unit": "force",
+  "psd_convention": null,
+  "q_a": null,
+  "q_a_grid": [],
+  "X0_hat": null,
+  "P0": null,
+  "init_mode": "k0",
+  "known_integrator_init": null,
+  "data_path": null,
+  "data_format": "npy_dir",
+  "column_map": {
+    "t": "pid/time.npy",
+    "u": "pid/pid.npy",
+    "x_true": "mass_block/position.npy",
+    "v_true": "mass_block/velocity.npy"
+  },
+  "units": {
+    "t": 1.0,
+    "u": 1.0,
+    "a_true": 1.0,
+    "x_true": 1.0,
+    "v_true": 1.0
+  },
+  "sample_alignment": {
+    "offset": 0,
+    "length": null,
+    "time_offset": 0.0
+  },
+  "test_windows": {
+    "static": null,
+    "step": null,
+    "random": null,
+    "steady": null
+  },
+  "baseline_gain": null,
+  "output_dir": "data/kalman-accelerometer",
+  "seed": null,
+  "state_scales": null
+}

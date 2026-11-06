@@ -1,0 +1,100 @@
+{
+  "_note": [
+    "Kalman parameter file derived from parameters/xiong-2018.json and from the",
+    "noise settings of the Simulink model that produced out.mat.",
+    "",
+    "PID: only the first-order terms are kept, Kp = a1, Kd = a2, Ki = a3;",
+    "the high-order integral terms a4, a5, b1, b2 are dropped by decision of the",
+    "task owner.",
+    "",
+    "Data: matlab_data/unit_step_1/out.mat, converted with mat_to_npy.py.",
+    "mems_out is a fixed point code of the PID output: u[V] = code * 7 / 65536,",
+    "which is applied by units.u below so the estimator sees volts."
+  ],
+  "_derivation": {
+    "K_s": "k_cv * k_adc = 4 * v_ref * C0 / (Cf * gap) * 1 = 4.7825831127e7 V/m",
+    "K_u": "duty_cycle * (-4 * (0.5 * C0 / gap) * v_ref) = -1.3152103560e-4 N/V",
+    "K_p": "a1 of the state space PID",
+    "K_i": "a3 of the state space PID, because inter0[k] = inter0[k-1] + e[k-1]",
+    "K_d": "a2 of the state space PID, because diff = e[k] - e[k-1]",
+    "alpha": "K_p + K_d = 37",
+    "beta": "-K_d = -28",
+    "baseline": "-K_u / m = 5.2608414239 (m/s^2)/V",
+    "u_code_scale": "mems_out = round(pid_V * 65536/7), verified with zero residual on 1001 samples; LSB = 1.068115e-4 V",
+    "sigma_n2": "Band-Limited White Noise at the C/V output: noise power 9.313e-15 V^2/Hz, sample time 1/fs, so sigma_n^2 = 9.313e-15 * 128000 = 1.192064e-9 V^2 (sigma_n = 3.4526e-5 V)",
+    "mechanical_noise_psd": "Brownian noise into the spring damper: noise power 5e-17 g^2/Hz, sample time 1/fs/1000; one sided ASD = sqrt(2*5e-17) g/sqrt(Hz) = 10 ng/sqrt(Hz); as a two sided PSD in SI = 5e-17 * 9.81^2 = 4.811805e-15 (m/s^2)^2/Hz",
+    "notes": [
+      "The electrostatic force is averaged over one sampling period by the impulse",
+      "theorem: F = duty_cycle * F_feedback.  The bias force of the detection phase",
+      "is not part of the model, so k stays at its bare value 859.1382065499873 N/m.",
+      "No negative stiffness term is introduced.",
+      "Observability of the closed loop pair (F, H): the scaled observability matrix",
+      "has rank 5, condition number about 2.1e4 and no undetectable mode, so all five",
+      "states including the external acceleration are observable.",
+      "The steady state PID output of the 9.81 m/s^2 step is 1.864716 V after the code",
+      "conversion, and a*m/|K_u| gives 1.864721 V, a relative difference of 3e-6.",
+      "That cross checks K_u, m and the code scale against an independent path.",
+      "The data was produced with the first-order PID terms only, as confirmed by the",
+      "task owner.  Running the same three term model from rest over the 1001 samples",
+      "reproduces the measured step response to 1.1e-5 in steady state, and the",
+      "settled PID noise is 2.32e-3 V measured against 1.82e-3 V modelled (ratio 0.79)",
+      "with no DC bias (-2.3e-6 V).  The 21 percent shortfall in noise gain is",
+      "attributed to the dropped a4, a5 terms and is consistent with the measured",
+      "NIS of about 1.4, since 1/0.79^2 is 1.6."
+    ]
+  },
+  "_pending": [],
+
+  "fs": 128000.0,
+  "Ts": 7.8125e-06,
+  "m": 2.5e-05,
+  "c": 0.002526815470516618,
+  "k": 859.1382065499873,
+  "K_u": -1.31521035598706e-04,
+  "k_cv": 47825831.126802,
+  "k_adc": 1.0,
+  "K_p": 9.0,
+  "K_i": 1.667,
+  "K_d": 28.0,
+  "sigma_n2": 1.192064e-09,
+  "mechanical_noise_psd": 4.811805e-15,
+  "mechanical_noise_unit": "accel",
+  "psd_convention": "two_sided_psd",
+  "q_a": 1e-07,
+  "q_a_grid": [1e-09, 1e-08, 1e-07, 1e-06, 1e-05],
+  "X0_hat": [0.0, 0.0, 0.0, 0.0, 0.0],
+  "P0": [
+    [1e-20, 0.0, 0.0, 0.0, 0.0],
+    [0.0, 1e-10, 0.0, 0.0, 0.0],
+    [0.0, 0.0, 1e-2, 0.0, 0.0],
+    [0.0, 0.0, 0.0, 1e-06, 0.0],
+    [0.0, 0.0, 0.0, 0.0, 1e-06]
+  ],
+  "init_mode": "k0",
+  "known_integrator_init": true,
+  "data_path": null,
+  "data_format": "npy_dir",
+  "column_map": {
+    "t": "pid/time.npy",
+    "u": "pid/pid.npy",
+    "a_true": "mass_block/acceleration.npy"
+  },
+  "units": {
+    "t": 1.0,
+    "u": 1.068115234375e-04,
+    "a_true": 1.0
+  },
+  "sample_alignment": {
+    "offset": 0,
+    "length": null,
+    "time_offset": 0.0
+  },
+  "test_windows": {
+    "static": [0.0, 0.00099],
+    "step": [0.001, 0.0078],
+    "steady": [0.005, 0.0078]
+  },
+  "baseline_gain": null,
+  "output_dir": "data/kalman-accelerometer-xiong-2018",
+  "seed": 20261026
+}
