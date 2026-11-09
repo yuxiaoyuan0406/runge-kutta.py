@@ -1,0 +1,603 @@
+{
+  "description": "Phase 1 five state ZOH output, captured before the FOH upgrade, for the compatibility regression of section 5.",
+  "tolerance": {
+    "array_relative": 1e-12,
+    "metric_relative": 1e-12,
+    "absolute_floor": 1e-300,
+    "note": "Relative difference of the maximum absolute deviation over the maximum absolute reference value.  1e-12 is about 4500 machine epsilons, far above BLAS rounding and far below any change that would alter the estimate."
+  },
+  "cases": [
+    {
+      "name": "unit_step_1",
+      "config": "configs/xiong-2018.json",
+      "data": "data/20261026-unit_step_1",
+      "samples": 1001,
+      "config_summary": {
+        "fs": 128000.0,
+        "Ts": 7.8125e-06,
+        "m": 2.5e-05,
+        "c": 0.002526815470516618,
+        "k": 859.1382065499873,
+        "K_u": -0.000131521035598706,
+        "k_cv": 47825831.126802,
+        "k_adc": 1.0,
+        "k_s": 47825831.126802,
+        "K_p": 9.0,
+        "K_i": 1.667,
+        "K_d": 28.0,
+        "alpha": 37.0,
+        "beta": -28.0,
+        "sigma_n2": 1.192064e-09,
+        "mechanical_noise_psd": 4.811805e-15,
+        "psd_convention": "two_sided_psd",
+        "mechanical_noise_unit": "accel",
+        "q_b": 4.811805e-15,
+        "q_F": 3.0073781249999998e-24,
+        "q_a": 1e-07,
+        "output_dir": "data/kalman-accelerometer-xiong-2018"
+      },
+      "data_summary": {
+        "source": "/home/dennis/Program/runge-kutta.py/data/20261026-unit_step_1 (npy_dir)",
+        "samples": 1001,
+        "dt": 7.8125e-06,
+        "fs": 128000.0,
+        "duration": 0.0078125,
+        "has_a_true": true,
+        "has_x_true": false,
+        "has_v_true": false,
+        "warnings": [
+          "optional columns not found and skipped: ['x_true', 'v_true']"
+        ]
+      },
+      "metrics": {
+        "windows": {
+          "static": {
+            "window": [
+              0.0,
+              0.00099
+            ],
+            "kalman": {
+              "samples": 127,
+              "bias": -0.0001359275817923551,
+              "rmse": 0.0033356247155033538,
+              "sigma_err": 0.003332854022483569
+            },
+            "baseline": {
+              "samples": 127,
+              "bias": 5.7519215210356354e-05,
+              "rmse": 0.011827226197137356,
+              "sigma_err": 0.011827086330036393
+            },
+            "rmse_ratio_kalman_over_baseline": 0.282029332990241
+          },
+          "step": {
+            "window": [
+              0.001,
+              0.0078
+            ],
+            "kalman": {
+              "samples": 871,
+              "bias": -0.08304837661249524,
+              "rmse": 0.8386441760100397,
+              "sigma_err": 0.8345220315231874
+            },
+            "baseline": {
+              "samples": 871,
+              "bias": -0.008382929278607171,
+              "rmse": 0.8393646088429604,
+              "sigma_err": 0.839322746668292
+            },
+            "rmse_ratio_kalman_over_baseline": 0.9991416926263859
+          },
+          "steady": {
+            "window": [
+              0.005,
+              0.0078
+            ],
+            "kalman": {
+              "samples": 359,
+              "bias": 3.80234720856083e-05,
+              "rmse": 0.0004895332761741193,
+              "sigma_err": 0.00048805434538821746
+            },
+            "baseline": {
+              "samples": 359,
+              "bias": -3.174869115394478e-05,
+              "rmse": 0.011607650167666524,
+              "sigma_err": 0.011607606748832367
+            },
+            "rmse_ratio_kalman_over_baseline": 0.04217333130332698
+          }
+        },
+        "innovation": {
+          "samples": 1001,
+          "mean": 103117.67983825985,
+          "variance": 1251686072761.4387,
+          "z_mean": 30.987402402898272,
+          "z_std": 319.620807724686,
+          "lag1": 0.973723001998919
+        },
+        "samples": 1001,
+        "has_truth": true,
+        "baseline_gain": 5.26084142394824,
+        "kalman_rmse": 0.0004895332761741193,
+        "steady_state": {
+          "samples": 359,
+          "bias": 3.80234720856083e-05,
+          "rmse": 0.0004895332761741193,
+          "sigma_err": 0.00048805434538821746
+        }
+      },
+      "observability": {
+        "rank": 5,
+        "singular_values": [
+          0.25264276767891636,
+          0.1700793358786146,
+          0.02905702048316091,
+          4.435315774144972e-05,
+          1.190639813141653e-05
+        ],
+        "condition": 21219.076070729287,
+        "scales": [
+          1e-10,
+          1e-05,
+          0.1,
+          0.001,
+          0.001
+        ],
+        "detectable": true,
+        "undetectable_modes": [],
+        "accel_observable": true,
+        "accel_null_component": 0.0,
+        "notes": []
+      },
+      "arrays": [
+        "acceleration",
+        "displacement",
+        "velocity",
+        "innovation",
+        "innovation_cov",
+        "state",
+        "posterior_variance",
+        "prior_variance",
+        "gain",
+        "next_gain"
+      ]
+    },
+    {
+      "name": "125hz_sine_1",
+      "config": "configs/xiong-2018-sine.json",
+      "data": "data/20261026-125hz-sine-1",
+      "samples": 1025,
+      "config_summary": {
+        "fs": 128000.0,
+        "Ts": 7.8125e-06,
+        "m": 2.5e-05,
+        "c": 0.002526815470516618,
+        "k": 859.1382065499873,
+        "K_u": -0.000131521035598706,
+        "k_cv": 47825831.126802,
+        "k_adc": 1.0,
+        "k_s": 47825831.126802,
+        "K_p": 9.0,
+        "K_i": 1.667,
+        "K_d": 28.0,
+        "alpha": 37.0,
+        "beta": -28.0,
+        "sigma_n2": 1.192064e-09,
+        "mechanical_noise_psd": 4.811805e-15,
+        "psd_convention": "two_sided_psd",
+        "mechanical_noise_unit": "accel",
+        "q_b": 4.811805e-15,
+        "q_F": 3.0073781249999998e-24,
+        "q_a": 0.01,
+        "output_dir": "data/kalman-accelerometer-xiong-2018-sine"
+      },
+      "data_summary": {
+        "source": "/home/dennis/Program/runge-kutta.py/data/20261026-125hz-sine-1 (npy_dir)",
+        "samples": 1025,
+        "dt": 7.8125e-06,
+        "fs": 128000.0,
+        "duration": 0.008,
+        "has_a_true": true,
+        "has_x_true": false,
+        "has_v_true": false,
+        "warnings": [
+          "optional columns not found and skipped: ['x_true', 'v_true']"
+        ]
+      },
+      "metrics": {
+        "windows": {
+          "startup": {
+            "window": [
+              0.0,
+              0.002
+            ],
+            "kalman": {
+              "samples": 257,
+              "bias": -0.05692231558289198,
+              "rmse": 0.07585754195972776,
+              "sigma_err": 0.05014196506773054
+            },
+            "baseline": {
+              "samples": 257,
+              "bias": -0.009940902052782957,
+              "rmse": 0.026604523008915262,
+              "sigma_err": 0.024677502120532324
+            },
+            "rmse_ratio_kalman_over_baseline": 2.8513024621530576
+          },
+          "steady": {
+            "window": [
+              0.002,
+              0.008
+            ],
+            "kalman": {
+              "samples": 769,
+              "bias": 0.019086585952162508,
+              "rmse": 0.07539544328284634,
+              "sigma_err": 0.07293953046536297
+            },
+            "baseline": {
+              "samples": 769,
+              "bias": 0.00332733186473488,
+              "rmse": 0.01685741169566098,
+              "sigma_err": 0.016525773559471504
+            },
+            "rmse_ratio_kalman_over_baseline": 4.472539713926117
+          }
+        },
+        "innovation": {
+          "samples": 1025,
+          "mean": 0.7095038623326257,
+          "variance": 0.8352612255518417,
+          "z_mean": -0.0008941246051352891,
+          "z_std": 0.8423200477691459,
+          "lag1": -0.266097164003913
+        },
+        "samples": 1025,
+        "has_truth": true,
+        "baseline_gain": 5.26084142394824,
+        "kalman_rmse": 0.07539544328284634,
+        "steady_state": {
+          "samples": 769,
+          "bias": 0.019086585952162508,
+          "rmse": 0.07539544328284634,
+          "sigma_err": 0.07293953046536297
+        }
+      },
+      "observability": {
+        "rank": 5,
+        "singular_values": [
+          0.25264276767891636,
+          0.1700793358786146,
+          0.02905702048316091,
+          4.435315774144972e-05,
+          1.190639813141653e-05
+        ],
+        "condition": 21219.076070729287,
+        "scales": [
+          1e-10,
+          1e-05,
+          0.1,
+          0.001,
+          0.001
+        ],
+        "detectable": true,
+        "undetectable_modes": [],
+        "accel_observable": true,
+        "accel_null_component": 0.0,
+        "notes": []
+      },
+      "arrays": [
+        "acceleration",
+        "displacement",
+        "velocity",
+        "innovation",
+        "innovation_cov",
+        "state",
+        "posterior_variance",
+        "prior_variance",
+        "gain",
+        "next_gain"
+      ]
+    },
+    {
+      "name": "125hz_sin_0p1",
+      "config": "configs/xiong-2018-sine-0p1.json",
+      "data": "data/20261027-125hz-sin-0.1",
+      "samples": 1025,
+      "config_summary": {
+        "fs": 128000.0,
+        "Ts": 7.8125e-06,
+        "m": 2.5e-05,
+        "c": 0.002526815470516618,
+        "k": 859.1382065499873,
+        "K_u": -0.000131521035598706,
+        "k_cv": 47825831.126802,
+        "k_adc": 1.0,
+        "k_s": 47825831.126802,
+        "K_p": 9.0,
+        "K_i": 1.667,
+        "K_d": 28.0,
+        "alpha": 37.0,
+        "beta": -28.0,
+        "sigma_n2": 1.192064e-09,
+        "mechanical_noise_psd": 4.811805e-15,
+        "psd_convention": "two_sided_psd",
+        "mechanical_noise_unit": "accel",
+        "q_b": 4.811805e-15,
+        "q_F": 3.0073781249999998e-24,
+        "q_a": 0.0001,
+        "output_dir": "data/kalman-accelerometer-xiong-2018-sine-0p1"
+      },
+      "data_summary": {
+        "source": "/home/dennis/Program/runge-kutta.py/data/20261027-125hz-sin-0.1 (npy_dir)",
+        "samples": 1025,
+        "dt": 7.8125e-06,
+        "fs": 128000.0,
+        "duration": 0.008,
+        "has_a_true": true,
+        "has_x_true": false,
+        "has_v_true": false,
+        "warnings": [
+          "optional columns not found and skipped: ['x_true', 'v_true']"
+        ]
+      },
+      "metrics": {
+        "windows": {
+          "startup": {
+            "window": [
+              0.0,
+              0.002
+            ],
+            "kalman": {
+              "samples": 257,
+              "bias": -0.009350205849631326,
+              "rmse": 0.012749960090486437,
+              "sigma_err": 0.008668052427074783
+            },
+            "baseline": {
+              "samples": 257,
+              "bias": -0.0009750680619422348,
+              "rmse": 0.012246216611724627,
+              "sigma_err": 0.012207336465251557
+            },
+            "rmse_ratio_kalman_over_baseline": 1.0411346209799623
+          },
+          "steady": {
+            "window": [
+              0.002,
+              0.008
+            ],
+            "kalman": {
+              "samples": 769,
+              "bias": 0.003142052393353292,
+              "rmse": 0.01281822596736457,
+              "sigma_err": 0.012427164749364282
+            },
+            "baseline": {
+              "samples": 769,
+              "bias": 0.00033404847031835835,
+              "rmse": 0.01251406664339055,
+              "sigma_err": 0.012509607330955597
+            },
+            "rmse_ratio_kalman_over_baseline": 1.0243053942928029
+          }
+        },
+        "innovation": {
+          "samples": 1025,
+          "mean": 1.2009043146411547,
+          "variance": 2.5054536230050766,
+          "z_mean": -0.0016839117813185706,
+          "z_std": 1.0958565047862185,
+          "lag1": -0.0928841710448166
+        },
+        "samples": 1025,
+        "has_truth": true,
+        "baseline_gain": 5.26084142394824,
+        "kalman_rmse": 0.01281822596736457,
+        "steady_state": {
+          "samples": 769,
+          "bias": 0.003142052393353292,
+          "rmse": 0.01281822596736457,
+          "sigma_err": 0.012427164749364282
+        }
+      },
+      "observability": {
+        "rank": 5,
+        "singular_values": [
+          0.25264276767891636,
+          0.1700793358786146,
+          0.02905702048316091,
+          4.435315774144972e-05,
+          1.190639813141653e-05
+        ],
+        "condition": 21219.076070729287,
+        "scales": [
+          1e-10,
+          1e-05,
+          0.1,
+          0.001,
+          0.001
+        ],
+        "detectable": true,
+        "undetectable_modes": [],
+        "accel_observable": true,
+        "accel_null_component": 0.0,
+        "notes": []
+      },
+      "arrays": [
+        "acceleration",
+        "displacement",
+        "velocity",
+        "innovation",
+        "innovation_cov",
+        "state",
+        "posterior_variance",
+        "prior_variance",
+        "gain",
+        "next_gain"
+      ]
+    },
+    {
+      "name": "12p5hz_sine_0p1",
+      "config": "configs/xiong-2018-sine-12p5.json",
+      "data": "data/20261027-12.5hz-sine-0.1",
+      "samples": 10241,
+      "config_summary": {
+        "fs": 128000.0,
+        "Ts": 7.8125e-06,
+        "m": 2.5e-05,
+        "c": 0.002526815470516618,
+        "k": 859.1382065499873,
+        "K_u": -0.000131521035598706,
+        "k_cv": 47825831.126802,
+        "k_adc": 1.0,
+        "k_s": 47825831.126802,
+        "K_p": 9.0,
+        "K_i": 1.667,
+        "K_d": 28.0,
+        "alpha": 37.0,
+        "beta": -28.0,
+        "sigma_n2": 1.192064e-09,
+        "mechanical_noise_psd": 4.811805e-15,
+        "psd_convention": "two_sided_psd",
+        "mechanical_noise_unit": "accel",
+        "q_b": 4.811805e-15,
+        "q_F": 3.0073781249999998e-24,
+        "q_a": 1e-06,
+        "output_dir": "data/kalman-accelerometer-xiong-2018-sine-12p5"
+      },
+      "data_summary": {
+        "source": "/home/dennis/Program/runge-kutta.py/data/20261027-12.5hz-sine-0.1 (npy_dir)",
+        "samples": 10241,
+        "dt": 7.8125e-06,
+        "fs": 128000.0,
+        "duration": 0.08,
+        "has_a_true": true,
+        "has_x_true": false,
+        "has_v_true": false,
+        "warnings": [
+          "optional columns not found and skipped: ['x_true', 'v_true']"
+        ]
+      },
+      "metrics": {
+        "windows": {
+          "startup": {
+            "window": [
+              0.0,
+              0.005
+            ],
+            "kalman": {
+              "samples": 641,
+              "bias": -0.0028146232981072364,
+              "rmse": 0.0034770499482279383,
+              "sigma_err": 0.0020415121925239266
+            },
+            "baseline": {
+              "samples": 641,
+              "bias": -0.00014506108214038435,
+              "rmse": 0.013030990886663095,
+              "sigma_err": 0.013030183451154665
+            },
+            "rmse_ratio_kalman_over_baseline": 0.2668292824751044
+          },
+          "steady": {
+            "window": [
+              0.005,
+              0.08
+            ],
+            "kalman": {
+              "samples": 9601,
+              "bias": 0.0001799465624791708,
+              "rmse": 0.002383574427098239,
+              "sigma_err": 0.002376772240701374
+            },
+            "baseline": {
+              "samples": 9601,
+              "bias": 2.7733438581488845e-06,
+              "rmse": 0.012756414598407206,
+              "sigma_err": 0.012756414296933928
+            },
+            "rmse_ratio_kalman_over_baseline": 0.18685300706641012
+          },
+          "detail": {
+            "window": [
+              0.04,
+              0.048
+            ],
+            "kalman": {
+              "samples": 1025,
+              "bias": 0.002698590855539013,
+              "rmse": 0.00298279802184751,
+              "sigma_err": 0.00127070509306394
+            },
+            "baseline": {
+              "samples": 1025,
+              "bias": 0.00013904445613392407,
+              "rmse": 0.012275924927964426,
+              "sigma_err": 0.012275137452437622
+            },
+            "rmse_ratio_kalman_over_baseline": 0.24297949354942108
+          }
+        },
+        "innovation": {
+          "samples": 10241,
+          "mean": 1.7220338917823526,
+          "variance": 5.530264056458306,
+          "z_mean": -0.0007787556698879882,
+          "z_std": 1.3122626586632566,
+          "lag1": 0.09660908765363671
+        },
+        "samples": 10241,
+        "has_truth": true,
+        "baseline_gain": 5.26084142394824,
+        "kalman_rmse": 0.002383574427098239,
+        "steady_state": {
+          "samples": 9601,
+          "bias": 0.0001799465624791708,
+          "rmse": 0.002383574427098239,
+          "sigma_err": 0.002376772240701374
+        }
+      },
+      "observability": {
+        "rank": 5,
+        "singular_values": [
+          0.25264276767891636,
+          0.1700793358786146,
+          0.02905702048316091,
+          4.435315774144972e-05,
+          1.190639813141653e-05
+        ],
+        "condition": 21219.076070729287,
+        "scales": [
+          1e-10,
+          1e-05,
+          0.1,
+          0.001,
+          0.001
+        ],
+        "detectable": true,
+        "undetectable_modes": [],
+        "accel_observable": true,
+        "accel_null_component": 0.0,
+        "notes": []
+      },
+      "arrays": [
+        "acceleration",
+        "displacement",
+        "velocity",
+        "innovation",
+        "innovation_cov",
+        "state",
+        "posterior_variance",
+        "prior_variance",
+        "gain",
+        "next_gain"
+      ]
+    }
+  ],
+  "file": "zoh-reference.npz",
+  "file_sha256": "8845d09585c49430c2b43cd22074a7d72921b1bcf24462c1e3e4b841e726ae3c"
+}

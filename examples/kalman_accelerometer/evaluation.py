@@ -142,6 +142,63 @@ def window_slice(t: np.ndarray, window: Optional[List[float]]) -> tuple:
     return int(mask[0]), int(mask[-1]) + 1
 
 
+def jerk_diagnostics(history: Dict[str, np.ndarray], t: np.ndarray,
+                     window: Optional[List[float]] = None) -> Optional[Dict[str, float]]:
+    '''
+    Diagnostics of the new Jerk state, section 7 of the V2.1 task sheet.
+
+    The task sheet asks for the Jerk mean, its variance and a drift check on the
+    static window, so the drift is reported as the least squares slope of the
+    posterior Jerk mean over the window.  Nothing here is used online.
+
+    Args:
+        history: Output of :meth:`kalman.ClosedLoopKalman.run`.
+        t: Sample times.
+        window: Optional ``[start, end]`` window in seconds.
+
+    Returns:
+        Optional[Dict[str, float]]: ``None`` on the ZOH path, otherwise the
+        statistics of the Jerk posterior.
+    '''
+    if 'jerk' not in history:
+        return None
+
+    jerk = np.asarray(history['jerk'], dtype=np.float64)
+    start, end = window_slice(t, window)
+    segment = jerk[start:end]
+    if segment.size == 0:
+        return None
+
+    statistics: Dict[str, float] = {
+        'samples': int(segment.size),
+        'mean': float(np.mean(segment)),
+        'std': float(np.std(segment)),
+        'rms': float(np.sqrt(np.mean(segment ** 2))),
+        'mean_abs': float(np.mean(np.abs(segment))),
+        'max_abs': float(np.max(np.abs(segment))),
+    }
+
+    if 'jerk_variance' in history:
+        variance = np.asarray(history['jerk_variance'], dtype=np.float64)[start:end]
+        finite = variance[np.isfinite(variance)]
+        statistics['mean_posterior_std'] = (float(np.mean(np.sqrt(np.maximum(finite, 0.))))
+                                           if finite.size else float('nan'))
+    if 'jerk_accel_correlation' in history:
+        correlation = np.asarray(history['jerk_accel_correlation'], dtype=np.float64)[start:end]
+        finite = correlation[np.isfinite(correlation)]
+        statistics['mean_accel_correlation'] = (float(np.mean(finite))
+                                                if finite.size else float('nan'))
+
+    if segment.size > 2:
+        time = np.asarray(t, dtype=np.float64)[start:end]
+        centred = time - time[0]
+        if np.ptp(centred) > 0:
+            slope = np.polyfit(centred, segment, 1)[0]
+            statistics['slope'] = float(slope)
+            statistics['drift_over_window'] = float(slope * np.ptp(centred))
+    return statistics
+
+
 def evaluate(t: np.ndarray, estimate: Dict[str, np.ndarray], data,
              config, model) -> Dict[str, object]:
     '''
@@ -174,6 +231,14 @@ def evaluate(t: np.ndarray, estimate: Dict[str, np.ndarray], data,
                           else float(-config.K_u / config.m)),
     }
 
+    jerk = jerk_diagnostics(estimate, t)
+    if jerk is not None:
+        report['prior_model'] = getattr(model, 'prior_model', 'ZOH')
+        report['jerk'] = jerk
+
+    innovation = np.asarray(estimate['innovation'], dtype=np.float64)
+    innovation_cov = np.asarray(estimate['innovation_cov'], dtype=np.float64)
+
     for name, window in windows.items():
         start, end = window_slice(t, window)
         entry: Dict[str, object] = {'window': [float(window[0]), float(window[1])]}
@@ -186,6 +251,11 @@ def evaluate(t: np.ndarray, estimate: Dict[str, np.ndarray], data,
                 baseline_rmse = entry['baseline']['rmse']
                 if kalman_rmse > 0 and baseline_rmse > 0:
                     entry['rmse_ratio_kalman_over_baseline'] = float(kalman_rmse / baseline_rmse)
+        entry['innovation'] = nis_statistics(innovation[start:end],
+                                            innovation_cov[start:end])
+        window_jerk = jerk_diagnostics(estimate, t, window)
+        if window_jerk is not None:
+            entry['jerk'] = window_jerk
         report['windows'][name] = entry
 
     if data.a_true is not None:
@@ -250,6 +320,15 @@ def write_markdown(path: str, report: Dict[str, object], title: str = 'Kalman ev
                   f"* z std: {innovation.get('z_std')}",
                   f"* z lag-1 correlation: {innovation.get('lag1')}"])
 
+    jerk = report.get('jerk') or {}
+    if jerk:
+        lines.extend(['', '## Jerk', '',
+                      f"* mean: {jerk.get('mean')}",
+                      f"* std: {jerk.get('std')}",
+                      f"* mean posterior std: {jerk.get('mean_posterior_std')}",
+                      f"* mean a/j correlation: {jerk.get('mean_accel_correlation')}",
+                      f"* slope over the record [m/s^4]: {jerk.get('slope')}"])
+
     for name, entry in (report.get('windows') or {}).items():
         lines.extend(['', f'## Window `{name}` {entry.get("window")}'])
         for method in ('kalman', 'baseline'):
@@ -259,6 +338,11 @@ def write_markdown(path: str, report: Dict[str, object], title: str = 'Kalman ev
             lines.append(
                 f"* {method}: bias {metrics['bias']:.6e}, "
                 f"RMSE {metrics['rmse']:.6e}, sigma_err {metrics['sigma_err']:.6e}")
+        window_jerk = entry.get('jerk')
+        if window_jerk:
+            lines.append(
+                f"* jerk: mean {window_jerk['mean']:.6e}, std {window_jerk['std']:.6e}, "
+                f"drift {window_jerk.get('drift_over_window', float('nan')):.6e}")
 
     directory = os.path.dirname(path)
     if directory:
@@ -303,9 +387,14 @@ def plot_spectrum(spectra: Dict[str, Dict[str, np.ndarray]], path: str,
 
 def plot_diagnostics(t: np.ndarray, estimate: Dict[str, np.ndarray], path: str):
     '''
-    Plot the innovation and the posterior standard deviations of the states.
+    Plot the innovation, the posterior standard deviations and, on the FOH
+    path, the Jerk estimate with its posterior band.
     '''
-    figure, axes = plt.subplots(2, 1, figsize=(9, 7), sharex=True)
+    has_jerk = 'jerk' in estimate
+    rows = 3 if has_jerk else 2
+    figure, axes = plt.subplots(rows, 1, figsize=(9, 3.4 * rows), sharex=True,
+                                squeeze=False)
+    axes = axes.ravel()
 
     axes[0].plot(t, estimate['innovation'], linewidth=1.)
     axes[0].set_ylabel('Innovation')
@@ -315,11 +404,28 @@ def plot_diagnostics(t: np.ndarray, estimate: Dict[str, np.ndarray], path: str):
     for column, label in enumerate(('x', 'v', 'a')):
         axes[1].semilogy(t, np.sqrt(np.maximum(variances[:, column], 1e-300)),
                          label=f'$\\sigma_{{{label}}}$', linewidth=1.)
-    axes[1].set_xlabel('Time [s]')
+    if has_jerk:
+        # State order is [x, v, a, j, I, h] on the FOH path.
+        jerk_column = 3 if variances.shape[1] == 6 else variances.shape[1] - 1
+        axes[1].semilogy(t, np.sqrt(np.maximum(variances[:, jerk_column], 1e-300)),
+                         label='$\\sigma_{j}$', linewidth=1.)
     axes[1].set_ylabel('Posterior std')
     axes[1].grid(True, which='both')
     axes[1].legend()
 
+    if has_jerk:
+        jerk = np.asarray(estimate['jerk'], dtype=np.float64)
+        axes[2].plot(t, jerk, label='$\\hat j$', linewidth=1.)
+        if 'jerk_variance' in estimate:
+            deviation = np.sqrt(np.maximum(
+                np.asarray(estimate['jerk_variance'], dtype=np.float64), 0.))
+            axes[2].fill_between(t, jerk - 2. * deviation, jerk + 2. * deviation,
+                                 alpha=0.2, label='$\\pm 2\\sigma$')
+        axes[2].set_ylabel('Jerk [m/s$^3$]')
+        axes[2].grid(True)
+        axes[2].legend(loc='upper right')
+
+    axes[-1].set_xlabel('Time [s]')
     figure.tight_layout()
     _save_figure(figure, path)
 

@@ -1,0 +1,144 @@
+{
+  "_note": [
+    "Same device and noise settings as xiong-2018.json, evaluation set up for the",
+    "0.1 g 125 Hz sine data set (matlab_data/125hz_sin_0.1), where a_true = 0.981 sin(2 pi 125 t).",
+    "Only test_windows, q_a and output_dir differ from the other configurations.",
+    "Phase 2 FOH variant: same device, noise, data, units and evaluation",
+    "windows as the ZOH file of the same name. The acceleration prior is",
+    "the six state first order hold model of the V2.1 task sheet."
+  ],
+  "_derivation": {
+    "K_s": "k_cv * k_adc = 4 * v_ref * C0 / (Cf * gap) * 1 = 4.7825831127e7 V/m",
+    "K_u": "duty_cycle * (-4 * (0.5 * C0 / gap) * v_ref) = -1.3152103560e-4 N/V",
+    "K_p": "a1 of the state space PID",
+    "K_i": "a3 of the state space PID, because inter0[k] = inter0[k-1] + e[k-1]",
+    "K_d": "a2 of the state space PID, because diff = e[k] - e[k-1]",
+    "alpha": "K_p + K_d = 37",
+    "beta": "-K_d = -28",
+    "baseline": "-K_u / m = 5.2608414239 (m/s^2)/V",
+    "u_code_scale": "mems_out = round(pid_V * 65536/7), verified with zero residual on 1001 samples; LSB = 1.068115e-4 V",
+    "sigma_n2": "Band-Limited White Noise at the C/V output: noise power 9.313e-15 V^2/Hz, sample time 1/fs, so sigma_n^2 = 9.313e-15 * 128000 = 1.192064e-9 V^2 (sigma_n = 3.4526e-5 V)",
+    "mechanical_noise_psd": "Brownian noise into the spring damper: noise power 5e-17 g^2/Hz, sample time 1/fs/1000; one sided ASD = sqrt(2*5e-17) g/sqrt(Hz) = 10 ng/sqrt(Hz); as a two sided PSD in SI = 5e-17 * 9.81^2 = 4.811805e-15 (m/s^2)^2/Hz",
+    "q_a": "scan over [1e-6 .. 1e-2] gives the smallest steady state RMSE at 1e-4; the 0.1 g sine changes by 0.006 m/s^2 per sample, an order below the 1 g case",
+    "result": "best Kalman RMSE 1.282e-2 against the PID baseline 1.251e-2, so the filter gives no improvement on this data set; the acceleration is only weakly observable through the mechanics and the random walk prior cannot average over a signal that moves at 125 Hz",
+    "prior_model": "FOH: X = [x, v, a, j, I, h]; A of section 18; q_j is the per sample variance of the Jerk boundary increment.",
+    "P0_FOH": "Assembled from the phase 1 5x5 P0 with the selection matrix of section 15.1: S P0 S^T puts the five common states in rows/columns 1,2,3,5,6; jerk_var0 = 0 because the initial Jerk is known to be zero (jerk_init_mode = known). No arbitrary number is inserted.",
+    "q_j": "manual entry 100 (m/s^3)^2, set by hand after the manual trial recorded in the phase 2 report; no automatic scan is implemented. It is not q_a and the numeric equality would carry no meaning."
+  },
+  "_pending": [],
+  "prior_model": "FOH",
+  "fs": 128000.0,
+  "Ts": 7.8125e-06,
+  "m": 2.5e-05,
+  "c": 0.002526815470516618,
+  "k": 859.1382065499873,
+  "K_u": -0.000131521035598706,
+  "k_cv": 47825831.126802,
+  "k_adc": 1.0,
+  "K_p": 9.0,
+  "K_i": 1.667,
+  "K_d": 28.0,
+  "sigma_n2": 1.192064e-09,
+  "mechanical_noise_psd": 4.811805e-15,
+  "mechanical_noise_unit": "accel",
+  "psd_convention": "two_sided_psd",
+  "q_j": 100.0,
+  "jerk0_hat": 0.0,
+  "jerk_init_mode": "known",
+  "jerk_var0": 0.0,
+  "X0_hat": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+  ],
+  "P0": [
+    [
+      1e-20,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      1e-10,
+      0.0,
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      0.01,
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1e-06,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1e-06
+    ]
+  ],
+  "state_scales": [
+    1e-10,
+    1e-05,
+    0.1,
+    12800.0,
+    0.001,
+    0.001
+  ],
+  "foh_output_fields": [
+    "jerk_hat",
+    "jerk_variance",
+    "jerk_accel_correlation"
+  ],
+  "zoh_reference": {
+    "program": "phase 1 ZOH implementation, examples/kalman_accelerometer",
+    "record": "examples/kalman_accelerometer/tests/fixtures/zoh-reference.npz",
+    "tolerance": 1e-12,
+    "note": "Relative tolerance of the compatibility regression; the record was captured before the FOH upgrade and is checked by `main.py reference` and tests/test_regression_zoh.py."
+  },
+  "init_mode": "k0",
+  "known_integrator_init": true,
+  "data_path": null,
+  "data_format": "npy_dir",
+  "column_map": {
+    "t": "pid/time.npy",
+    "u": "pid/pid.npy",
+    "a_true": "mass_block/acceleration.npy"
+  },
+  "units": {
+    "t": 1.0,
+    "u": 0.0001068115234375,
+    "a_true": 1.0
+  },
+  "sample_alignment": {
+    "offset": 0,
+    "length": null,
+    "time_offset": 0.0
+  },
+  "test_windows": {
+    "startup": [
+      0.0,
+      0.002
+    ],
+    "steady": [
+      0.002,
+      0.008
+    ]
+  },
+  "baseline_gain": null,
+  "output_dir": "data/kalman-accelerometer-xiong-2018-sine-0p1-foh",
+  "seed": 20261026
+}

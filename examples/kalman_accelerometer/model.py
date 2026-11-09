@@ -1,16 +1,24 @@
 '''
-Five state closed loop model of the MEMS accelerometer.
+Five and six state closed loop models of the MEMS accelerometer.
 
-Everything in this module follows sections 12, 13 and 17 of the development
-task sheet:
+The five state model is the phase 1 (ZOH) model of sections 12, 13 and 17 of
+the V1.1 task sheet.  The six state model is the phase 2 (FOH) model of
+sections 11 and 18 of the V2.1 task sheet:
 
-* the deterministic zero order hold discretisation uses one augmented matrix
-  exponential, so ``A_m`` never has to be inverted;
+* the deterministic first order hold discretisation uses one 5x5 augmented
+  matrix exponential, so ``A_m`` never has to be inverted and the Jerk column
+  ``Gamma_j`` is produced together with ``Phi``, ``Gamma_a`` and ``Gamma_u``;
 * the mechanical process covariance is obtained with the Van Loan block
   exponential, which turns the continuous white force into a discrete
-  covariance without pretending the spectral density is a variance;
+  covariance without pretending the spectral density is a variance.  FOH does
+  not change how the mechanical noise enters, so the same ``Q_m`` is used;
+* only the Jerk boundary increment ``q_j`` is added, and it is added to the
+  Jerk diagonal of ``Q0`` alone;
 * the observability and detectability checks act on the closed loop pair
   ``(F, H)`` with ``F = A + G H``, not on the two mechanical states alone.
+
+The state order is ``[x, v, a, I, h]`` on the ZOH path and
+``[x, v, a, j, I, h]`` on the FOH path, as required by section 18.
 '''
 from dataclasses import dataclass
 from typing import Dict, List, Optional
@@ -94,15 +102,94 @@ def discretize_zero_order_hold(m: float, c: float, k: float, K_u: float, Ts: flo
         ``(2, 1)``.
     '''
     A_m, B_u, B_a = continuous_mechanics(m, c, k, K_u)
+    return zoh_matrices(A_m, B_u, B_a, Ts)
+
+
+def zoh_matrices(A_m: np.ndarray, B_u: np.ndarray, B_a: np.ndarray, Ts: float) -> tuple:
+    '''
+    Zero order hold matrices from block 2x2, 2x1, 2x1 inputs.
+
+    The augmented matrix is the one of section 12.1::
+
+        M = [[A_m, B_u, B_a], [0, 0, 0], [0, 0, 0]]
+
+    Args:
+        A_m: Continuous mechanical matrix ``(2, 2)``.
+        B_u: Control input column ``(2, 1)``.
+        B_a: Acceleration input column ``(2, 1)``.
+        Ts: Sampling period in seconds.
+
+    Returns:
+        tuple: ``(Phi, Gamma_u, Gamma_a)``.
+    '''
     augmented = np.zeros((4, 4), dtype=np.float64)
     augmented[:2, :2] = A_m
     augmented[:2, 2:3] = B_u
     augmented[:2, 3:4] = B_a
     exponential = scipy.linalg.expm(augmented * Ts)
+    return exponential[:2, :2], exponential[:2, 2:3], exponential[:2, 3:4]
+
+
+def discretize_first_order_hold(m: float, c: float, k: float, K_u: float, Ts: float) -> tuple:
+    '''
+    First order hold discretisation with one 5x5 augmented matrix exponential.
+
+    Section 11.3 (F12).  Inside ``[t_k, t_{k+1})`` the Jerk is constant and the
+    external acceleration is affine, ``a(t) = a[k] + j[k] tau``, so the
+    augmented vector is ``[s_m, a, j, u]`` with block sizes 2, 1, 1, 1 and::
+
+        M = [[A_m, B_a, 0,   B_u],
+             [0,   0,   1,   0  ],
+             [0,   0,   0,   0  ],
+             [0,   0,   0,   0  ]]
+
+        exp(M Ts) = [[Phi, Gamma_a, Gamma_j, Gamma_u],
+                     [0,   1,       Ts,      0      ],
+                     [0,   0,       1,       0      ],
+                     [0,   0,       0,       1      ]]
+
+    so ``Gamma_j = int_0^Ts exp(A_m (Ts - tau)) B_a tau dtau``.  The mass of the
+    displacement, that is the ``x`` entry of ``Gamma_j``, carries the ``(Ts -
+    tau)`` kernel; writing ``int exp(A_m tau) B_a tau dtau`` would give a wrong
+    coefficient as soon as the mass is not free.  The free particle limit is
+    ``[Ts^3 / 6, Ts^2 / 2]`` and is asserted by the verification module.
+
+    Args:
+        m, c, k, K_u: Continuous mechanical parameters.
+        Ts: Sampling period in seconds.
+
+    Returns:
+        tuple: ``(Phi, Gamma_u, Gamma_a, Gamma_j)`` with shapes ``(2, 2)``,
+        ``(2, 1)``, ``(2, 1)``, ``(2, 1)``.
+    '''
+    A_m, B_u, B_a = continuous_mechanics(m, c, k, K_u)
+    return foh_matrices(A_m, B_u, B_a, Ts)
+
+
+def foh_matrices(A_m: np.ndarray, B_u: np.ndarray, B_a: np.ndarray, Ts: float) -> tuple:
+    '''
+    First order hold matrices from block 2x2, 2x1, 2x1 inputs.
+
+    Args:
+        A_m: Continuous mechanical matrix ``(2, 2)``.
+        B_u: Control input column ``(2, 1)``.
+        B_a: Acceleration input column ``(2, 1)``.
+        Ts: Sampling period in seconds.
+
+    Returns:
+        tuple: ``(Phi, Gamma_u, Gamma_a, Gamma_j)``.
+    '''
+    augmented = np.zeros((5, 5), dtype=np.float64)
+    augmented[:2, :2] = A_m
+    augmented[:2, 2:3] = B_a
+    augmented[2, 3] = 1.
+    augmented[:2, 4:5] = B_u
+    exponential = scipy.linalg.expm(augmented * Ts)
     Phi = exponential[:2, :2]
-    Gamma_u = exponential[:2, 2:3]
-    Gamma_a = exponential[:2, 3:4]
-    return Phi, Gamma_u, Gamma_a
+    Gamma_a = exponential[:2, 2:3]
+    Gamma_j = exponential[:2, 3:4]
+    Gamma_u = exponential[:2, 4:5]
+    return Phi, Gamma_u, Gamma_a, Gamma_j
 
 
 def mechanical_process_noise(A_m: np.ndarray, q_b: float, Ts: float) -> tuple:
@@ -170,6 +257,10 @@ class ObservabilityReport:
     accel_observable: bool
     accel_null_component: float
     notes: List[str]
+    dim: int = 5
+    prior_model: str = 'ZOH'
+    jerk_observable: Optional[bool] = None
+    jerk_null_component: Optional[float] = None
 
     def as_dict(self) -> Dict[str, object]:
         '''
@@ -186,20 +277,33 @@ class ObservabilityReport:
             'accel_observable': bool(self.accel_observable),
             'accel_null_component': float(self.accel_null_component),
             'notes': list(self.notes),
+            'dim': int(self.dim),
+            'prior_model': self.prior_model,
+            'jerk_observable': (None if self.jerk_observable is None
+                                else bool(self.jerk_observable)),
+            'jerk_null_component': (None if self.jerk_null_component is None
+                                    else float(self.jerk_null_component)),
         }
 
 
 class ClosedLoopModel:
     '''
-    The five state model of section 13: ``X[k+1] = A X[k] + G u[k] + L n[k] + xi[k]``.
+    The closed loop model of section 13 (ZOH) or section 18 (FOH)::
+
+        X[k+1] = A X[k] + G u[k] + L n[k] + xi[k]
+        u[k]   = H X[k] + alpha n[k]
 
     Attributes:
+        dim: 5 on the ZOH path, 6 on the FOH path.
+        index: Position of every state component in the state vector.
         Phi, Gamma_u, Gamma_a: Mechanical discretisation, ``(2, 2)``, ``(2, 1)``,
             ``(2, 1)``.
+        Gamma_j: Jerk input column of the FOH mechanical map, ``(2, 1)`` or
+            ``None`` on the ZOH path.
         Q_m: Discrete mechanical process covariance, ``(2, 2)``.
-        A, Q0, F: ``(5, 5)`` state, process covariance and closed loop matrix.
-        G, L: ``(5, 1)`` control and readout noise input matrices.
-        H: ``(1, 5)`` observation row.
+        A, Q0, F: ``(dim, dim)`` state, process covariance and closed loop matrix.
+        G, L: ``(dim, 1)`` control and readout noise input matrices.
+        H: ``(1, dim)`` observation row.
         R: Scalar measurement noise variance of the observed PID output.
     '''
 
@@ -224,16 +328,30 @@ class ClosedLoopModel:
         self.alpha = config.alpha
         self.beta = config.beta
         self.q_b = config.q_b
-        self.q_a = config.q_a
         self.r = config.r
         self.R = config.R
 
-        self.Phi, self.Gamma_u, self.Gamma_a = discretize_zero_order_hold(
-            self.m, self.c, self.k, self.K_u, self.Ts)
+        self.prior_model = getattr(config, 'prior_model', 'ZOH')
+        self.has_jerk = self.prior_model == 'FOH'
+        self.dim = 6 if self.has_jerk else 5
+        self.index = dict(getattr(config, 'index', None)
+                          or {'x': 0, 'v': 1, 'a': 2, 'I': 3, 'h': 4})
+        self.state_labels = tuple(getattr(config, 'state_labels',
+                                          ('x', 'v', 'a', 'I', 'h')))
+        self.q_a = 0. if self.has_jerk else config.q_a
+        self.q_j = config.q_j if self.has_jerk else 0.
 
-        _, self.Q_m, self.W_m = mechanical_process_noise(
-            continuous_mechanics(self.m, self.c, self.k, self.K_u)[0],
-            self.q_b, self.Ts)
+        A_m, B_u, B_a = continuous_mechanics(self.m, self.c, self.k, self.K_u)
+
+        if self.has_jerk:
+            self.Phi, self.Gamma_u, self.Gamma_a, self.Gamma_j = foh_matrices(
+                A_m, B_u, B_a, self.Ts)
+        else:
+            self.Phi, self.Gamma_u, self.Gamma_a = zoh_matrices(
+                A_m, B_u, B_a, self.Ts)
+            self.Gamma_j = None
+
+        _, self.Q_m, self.W_m = mechanical_process_noise(A_m, self.q_b, self.Ts)
 
         self._check_gamma_relation()
         self._build_state_matrices()
@@ -251,38 +369,54 @@ class ClosedLoopModel:
     def _build_state_matrices(self):
         '''
         Assemble ``A``, ``G``, ``L``, ``H``, ``Q0`` and the closed loop pair.
-        '''
-        phi = self.Phi
-        ga = self.Gamma_a
-        gu = self.Gamma_u
 
-        A = np.zeros((5, 5), dtype=np.float64)
-        A[0:2, 0:2] = phi
-        A[0:2, 2] = ga.ravel()
-        A[2, 2] = 1.
-        A[3, 0] = self.K_i * self.k_s
-        A[3, 3] = 1.
-        A[4, 0] = self.k_s
+        Section 18 gives the six rows explicitly.  The ZOH rows are the phase 1
+        rows of section 13.1; both are built from the same index map so the
+        ZOH arithmetic path stays identical.
+        '''
+        dim = self.dim
+        i_a = self.index['a']
+        i_j = self.index.get('j')
+        i_I = self.index['I']
+        i_h = self.index['h']
+
+        A = np.zeros((dim, dim), dtype=np.float64)
+        A[0:2, 0:2] = self.Phi
+        A[0:2, i_a] = self.Gamma_a.ravel()
+        if self.has_jerk:
+            A[0:2, i_j] = self.Gamma_j.ravel()
+        A[i_a, i_a] = 1.
+        if self.has_jerk:
+            # a[k+1] = a[k] + T j[k]: the acceleration extrapolates with the
+            # *old* Jerk, the boundary increment only enters through Q0.
+            A[i_a, i_j] = self.Ts
+            A[i_j, i_j] = 1.
+        A[i_I, 0] = self.K_i * self.k_s
+        A[i_I, i_I] = 1.
+        A[i_h, 0] = self.k_s
         self.A = A
 
-        G = np.zeros((5, 1), dtype=np.float64)
-        G[0:2, 0] = gu.ravel()
+        G = np.zeros((dim, 1), dtype=np.float64)
+        G[0:2, 0] = self.Gamma_u.ravel()
         self.G = G
 
-        L = np.zeros((5, 1), dtype=np.float64)
-        L[3, 0] = self.K_i
-        L[4, 0] = 1.
+        L = np.zeros((dim, 1), dtype=np.float64)
+        L[i_I, 0] = self.K_i
+        L[i_h, 0] = 1.
         self.L = L
 
-        H = np.zeros((1, 5), dtype=np.float64)
+        H = np.zeros((1, dim), dtype=np.float64)
         H[0, 0] = self.alpha * self.k_s
-        H[0, 3] = 1.
-        H[0, 4] = self.beta
+        H[0, i_I] = 1.
+        H[0, i_h] = self.beta
         self.H = H
 
-        Q0 = np.zeros((5, 5), dtype=np.float64)
+        Q0 = np.zeros((dim, dim), dtype=np.float64)
         Q0[0:2, 0:2] = self.Q_m
-        Q0[2, 2] = self.q_a
+        if self.has_jerk:
+            Q0[i_j, i_j] = self.q_j
+        else:
+            Q0[i_a, i_a] = self.q_a
         self.Q0 = check_covariance(Q0, 'Q0', self.config.tolerances['psd_eigen'])
 
         self.F = self.A + self.G @ self.H
@@ -296,15 +430,39 @@ class ClosedLoopModel:
         '''
         Return a copy of this model with another ``q_a``.
 
-        Section 20: a ``q_a`` sweep only changes the third diagonal entry of
-        ``Q0``; every other matrix stays the same.
+        Section 20: a ``q_a`` sweep only changes the acceleration diagonal entry
+        of ``Q0``; every other matrix stays the same.  ``q_a`` belongs to the
+        ZOH path: on the FOH path the equivalent parameter is ``q_j`` and the
+        two are not interchangeable.
         '''
         import copy
 
+        if self.has_jerk:
+            raise ModelError('q_a is the ZOH parameter; the FOH path uses q_j. '
+                             'Use with_q_j for a manual FOH prior check.')
         clone = copy.deepcopy(self)
         clone.q_a = float(q_a)
         Q0 = clone.Q0.copy()
-        Q0[2, 2] = clone.q_a
+        Q0[self.index['a'], self.index['a']] = clone.q_a
+        clone.Q0 = Q0
+        clone.Q_cl = symmetrize(clone.Q0 + clone.r * (clone.D @ clone.D.T))
+        return clone
+
+    def with_q_j(self, q_j: float) -> 'ClosedLoopModel':
+        '''
+        Return a copy of this model with another ``q_j``.
+
+        Only used for the boundary timing check of section 19.1; the program
+        deliberately offers no automatic ``q_j`` sweep or tuning (section 7).
+        '''
+        import copy
+
+        if not self.has_jerk:
+            raise ModelError('q_j is the FOH parameter; the ZOH path uses q_a')
+        clone = copy.deepcopy(self)
+        clone.q_j = float(q_j)
+        Q0 = clone.Q0.copy()
+        Q0[self.index['j'], self.index['j']] = clone.q_j
         clone.Q0 = Q0
         clone.Q_cl = symmetrize(clone.Q0 + clone.r * (clone.D @ clone.D.T))
         return clone
@@ -315,7 +473,7 @@ class ClosedLoopModel:
     def observability_matrix(self, F: Optional[np.ndarray] = None,
                              H: Optional[np.ndarray] = None) -> np.ndarray:
         '''
-        Stacked observability matrix ``[H; H F; H F^2; H F^3; H F^4]``.
+        Stacked observability matrix ``[H; H F; ...; H F^(dim-1)]``.
 
         Args:
             F: Dynamics matrix, defaults to ``self.F``.
@@ -327,7 +485,7 @@ class ClosedLoopModel:
         observation = self.H if H is None else H
         rows = []
         row = observation.copy()
-        for _ in range(5):
+        for _ in range(self.dim):
             rows.append(row)
             row = row @ matrix
         return np.vstack(rows)
@@ -341,20 +499,25 @@ class ClosedLoopModel:
         '''
         if self.config.state_scales is not None:
             return np.asarray(self.config.state_scales, dtype=np.float64)
-        variances = np.diag(self.config.P0).astype(np.float64)
+        prior = getattr(self.config, 'prior_covariance', None)
+        if prior is None:
+            raise ModelError('the configuration has no prior covariance')
+        variances = np.diag(np.asarray(prior, dtype=np.float64)).astype(np.float64)
         scales = np.sqrt(np.abs(variances))
         scales[scales <= 0] = 1.
         return scales
 
     def observability_report(self) -> ObservabilityReport:
         '''
-        Compute the scaled rank, the PBH detectability and the acceleration
-        estimability of the closed loop pair ``(F, H)``.
+        Compute the scaled rank, the PBH detectability and the acceleration /
+        Jerk estimability of the closed loop pair ``(F, H)``.
 
         Returns:
             ObservabilityReport: Rank, singular values, detectability and the
-            component of the acceleration direction inside ``ker(O)``.
+            component of the acceleration and Jerk directions inside
+            ``ker(O)``.
         '''
+        dim = self.dim
         scales = self._default_scales()
         inverse = 1. / scales
         T = np.diag(scales)
@@ -374,32 +537,50 @@ class ClosedLoopModel:
             notes.append('k_s = 0: the displacement does not reach the readout, '
                          'the external acceleration cannot be reconstructed.')
         if self.K_i == 0:
-            notes.append('K_i = 0: the direction v_dc = [1, 0, k/m, -K_p K_s, K_s] '
-                         'is a static unobservable mode (section 17.2).')
+            if self.has_jerk:
+                notes.append('K_i = 0: the direction v_dc = [1, 0, k/m, 0, -K_p K_s, K_s] '
+                             'is a static unobservable mode (section 17.2).')
+            else:
+                notes.append('K_i = 0: the direction v_dc = [1, 0, k/m, -K_p K_s, K_s] '
+                             'is a static unobservable mode (section 17.2).')
         if self.config.K_d == 0:
             notes.append('K_d = 0: h does not influence any other state, the fifth '
                          'state should be removed to obtain a four state model.')
+        if (self.has_jerk and self.config.state_scales is None
+                and float(np.diag(self.config.prior_covariance)[self.index['j']]) <= 0):
+            notes.append('the Jerk prior variance is zero and no state_scales entry '
+                         'was configured: the rank decision used a unit Jerk scale. '
+                         'Provide state_scales for a physical observability check '
+                         '(section 17.4).')
 
         undetectable: List[complex] = []
         eigenvalues = np.linalg.eigvals(F_z)
         for eigenvalue in eigenvalues:
             if abs(eigenvalue) < 1. - 1e-9:
                 continue
-            pbh = np.vstack([eigenvalue * np.eye(5) - F_z, H_z])
+            pbh = np.vstack([eigenvalue * np.eye(dim) - F_z, H_z])
             pbh_singular = np.linalg.svd(pbh, compute_uv=False)
             pbh_rank = int(np.sum(pbh_singular > rtol * pbh_singular[0]))
-            if pbh_rank < 5:
+            if pbh_rank < dim:
                 undetectable.append(complex(eigenvalue))
 
-        # Kernel of O: does the unobservable subspace touch the acceleration?
+        # Kernel of O: does the unobservable subspace touch the target states?
         _, _, vh = np.linalg.svd(O)
-        null_basis = vh[rank:].T if rank < 5 else np.zeros((5, 0))
-        c_a = np.array([[0., 0., 1., 0., 0.]])
-        if null_basis.size:
-            projection = c_a @ null_basis
-            accel_null = float(np.linalg.norm(projection))
-        else:
-            accel_null = 0.
+        null_basis = vh[rank:].T if rank < dim else np.zeros((dim, 0))
+
+        def target_null(position: int) -> float:
+            if not null_basis.size:
+                return 0.
+            selector = np.zeros(dim)
+            selector[position] = 1.
+            return float(np.linalg.norm(selector @ null_basis))
+
+        accel_null = target_null(self.index['a'])
+        jerk_null = None
+        jerk_observable = None
+        if self.has_jerk:
+            jerk_null = target_null(self.index['j'])
+            jerk_observable = jerk_null < 1e-9
 
         return ObservabilityReport(
             rank=rank,
@@ -411,13 +592,20 @@ class ClosedLoopModel:
             accel_observable=accel_null < 1e-9,
             accel_null_component=accel_null,
             notes=notes,
+            dim=dim,
+            prior_model=self.prior_model,
+            jerk_observable=jerk_observable,
+            jerk_null_component=jerk_null,
         )
 
     def as_dict(self) -> Dict[str, object]:
         '''
         JSON friendly view of the constant matrices.
         '''
-        return {
+        payload = {
+            'prior_model': self.prior_model,
+            'state_labels': list(self.state_labels),
+            'dim': self.dim,
             'Phi': self.Phi.tolist(),
             'Gamma_u': self.Gamma_u.ravel().tolist(),
             'Gamma_a': self.Gamma_a.ravel().tolist(),
@@ -430,7 +618,13 @@ class ClosedLoopModel:
             'R': float(self.R),
             'F': self.F.tolist(),
         }
+        if self.has_jerk:
+            payload['Gamma_j'] = self.Gamma_j.ravel().tolist()
+            payload['q_j'] = float(self.q_j)
+        else:
+            payload['q_a'] = float(self.q_a)
+        return payload
 
     def __repr__(self) -> str:
-        return (f'ClosedLoopModel(m={self.m!r}, c={self.c!r}, k={self.k!r}, '
-                f'K_u={self.K_u!r}, Ts={self.Ts!r})')
+        return (f'ClosedLoopModel({self.prior_model}, m={self.m!r}, c={self.c!r}, '
+                f'k={self.k!r}, K_u={self.K_u!r}, Ts={self.Ts!r})')

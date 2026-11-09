@@ -1,9 +1,11 @@
 {
   "_instructions": [
-    "Section 9 parameter block of the development task sheet.",
+    "Section 9 parameter block of the V1.1 task sheet plus the phase 2 (V2.1) additions.",
     "Every null entry must be filled by the user; nothing here is a device value.",
     "Run `python examples/kalman_accelerometer/main.py params --config <this file>`",
-    "to list the entries that are still missing."
+    "to list the entries that are still missing for the selected prior_model.",
+    "This template selects prior_model = ZOH, the phase 1 path.  For the six state",
+    "FOH path use parameter-template-foh.json, which drops q_a and q_a_grid."
   ],
   "_units": {
     "fs": "Hz",
@@ -19,10 +21,17 @@
     "K_d": "control unit per digital error, discrete, already contains any Ts factor",
     "sigma_n2": "(digital error)^2, discrete variance, never rescaled by fs",
     "mechanical_noise_psd": "N^2/Hz when mechanical_noise_unit is force, (m/s^2)^2/Hz when it is accel",
-    "q_a": "(m/s^2)^2 per sample",
-    "X0_hat": "five entries: [x, v, a, I, e[-1]]",
-    "P0": "5x5 covariance of X0_hat"
+    "q_a": "(m/s^2)^2 per sample, ZOH path only",
+    "q_j": "(m/s^3)^2 per sample, FOH path only; it is not q_a and a numerically equal value has no meaning",
+    "jerk0_hat": "m/s^3, prior mean of the Jerk state",
+    "P0_FOH": "6x6 covariance of [x, v, a, j, I, e[-1]], or leave null and give P0 plus jerk_var0",
+    "jerk_var0": "(m/s^3)^2, Jerk variance used when P0_FOH is assembled from the five state P0",
+    "jerk_init_mode": "known (zero Jerk variance and zero cross covariances) or unknown (finite positive variance)",
+    "X0_hat": "five entries [x, v, a, I, e[-1]]; six entries are accepted on the FOH path",
+    "P0": "5x5 covariance of the five common states",
+    "state_scales": "one positive scale per state, six entries on the FOH path; the Jerk scale must be set separately"
   },
+  "prior_model": "ZOH",
   "fs": null,
   "Ts": null,
   "m": null,
@@ -40,8 +49,19 @@
   "psd_convention": null,
   "q_a": null,
   "q_a_grid": [],
+  "q_j": null,
+  "jerk0_hat": null,
+  "jerk_init_mode": null,
+  "P0_FOH": null,
+  "jerk_var0": null,
   "X0_hat": null,
   "P0": null,
+  "foh_output_fields": [
+    "jerk_hat",
+    "jerk_variance",
+    "jerk_accel_correlation"
+  ],
+  "zoh_reference": {},
   "init_mode": "k0",
   "known_integrator_init": null,
   "data_path": null,

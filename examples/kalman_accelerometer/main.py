@@ -82,6 +82,21 @@ def argue_parser() -> argparse.ArgumentParser:
     scan.add_argument('--out', type=str, default='',
                       help='Override output_dir of the configuration.')
 
+    reference = subparsers.add_parser(
+        'reference',
+        help='Verify, or explicitly capture, the phase 1 ZOH reference record.')
+    reference.add_argument('--capture', action='store_true', default=False,
+                           help='Overwrite the reference with the current ZOH '
+                                'implementation.  Only the phase 1 program is '
+                                'allowed to do this.')
+    reference.add_argument('--base-dir', type=str, default='',
+                           help='Directory the case paths are relative to, '
+                                'defaults to the repository root.')
+    reference.add_argument('--reference-dir', type=str, default='',
+                           help='Directory holding the reference record.')
+    reference.add_argument('--out', type=str, default='',
+                           help='Optional path of the JSON report.')
+
     return parser
 
 
@@ -133,7 +148,7 @@ def command_check(args) -> int:
     return 0
 
 
-def filter_sequence(config, model: ClosedLoopModel) -> dict:
+def filter_sequence(config) -> tuple:
     '''
     Run the estimator on the configured data and return its history.
     '''
@@ -142,13 +157,13 @@ def filter_sequence(config, model: ClosedLoopModel) -> dict:
     for message in data.warnings:
         logger.warning(message)
 
-    estimator = ClosedLoopKalman(model, config.X0_hat, config.P0, config.tolerances)
+    estimator = ClosedLoopKalman.initialize(config)
     history = estimator.run(data.u)
 
     finite = np.all(np.isfinite(history['state']))
     if not finite:
         raise RuntimeError('the estimate contains non finite entries')
-    return data, history
+    return data, history, estimator
 
 
 def command_run(args) -> int:
@@ -156,7 +171,8 @@ def command_run(args) -> int:
     Filter the data, evaluate the estimate and write the report.
     '''
     config = load(args.config, args.data, args.out)
-    model = ClosedLoopModel(config)
+    data, history, estimator = filter_sequence(config)
+    model = estimator.model
 
     report = model.observability_report()
     if not report.detectable:
@@ -165,28 +181,42 @@ def command_run(args) -> int:
     for note in report.notes:
         logger.warning(note)
 
-    data, history = filter_sequence(config, model)
     metrics = evaluation.evaluate(data.t, history, data, config, model)
 
     payload = {
         'config': config.summary(),
         'data': data.summary(),
+        'model': model.as_dict(),
         'observability': report.as_dict(),
         'metrics': metrics,
     }
     output_dir = config.output_dir
     evaluation.save_json(os.path.join(output_dir, 'report.json'), payload)
     evaluation.write_markdown(os.path.join(output_dir, 'report.md'), metrics,
-                              title='Closed loop Kalman evaluation')
-    np.savez(os.path.join(output_dir, 'estimate.npz'),
-             t=data.t, u=data.u,
-             a_hat=history['acceleration'],
-             x_hat=history['displacement'],
-             v_hat=history['velocity'],
-             state=history['state'],
-             innovation=history['innovation'],
-             innovation_cov=history['innovation_cov'],
-             gain=history['gain'])
+                              title=f'Closed loop Kalman evaluation ({config.prior_model})')
+
+    fields = {
+        't': data.t,
+        'u': data.u,
+        'a_hat': history['acceleration'],
+        'x_hat': history['displacement'],
+        'v_hat': history['velocity'],
+        'state': history['state'],
+        'innovation': history['innovation'],
+        'innovation_cov': history['innovation_cov'],
+        'gain': history['gain'],
+    }
+    if model.has_jerk:
+        # Section 5: the phase 1 fields keep their names, units and index; the
+        # Jerk diagnostics are appended.
+        fields.update({
+            'jerk_hat': history['jerk'],
+            'jerk_variance': history['jerk_variance'],
+            'jerk_accel_correlation': history['jerk_accel_correlation'],
+            'posterior_variance': history['posterior_variance'],
+            'prior_variance': history['prior_variance'],
+        })
+    np.savez(os.path.join(output_dir, 'estimate.npz'), **fields)
 
     series = {'Kalman estimate': history['acceleration']}
     if data.a_true is not None:
@@ -212,8 +242,19 @@ def command_run(args) -> int:
 def command_scan(args) -> int:
     '''
     Repeat the run for every q_a of ``q_a_grid`` without touching the data.
+
+    The sweep belongs to the ZOH path of phase 1.  ``q_j`` is a different
+    physical quantity and section 7 of the V2.1 task sheet forbids an automatic
+    ``q_j`` scan, so an FOH configuration is rejected instead of being mapped
+    onto ``q_a``.
     '''
     config = load(args.config, args.data, args.out)
+    if config.prior_model == 'FOH':
+        logger.error('scan sweeps q_a, which is the ZOH parameter.  The FOH path '
+                     'uses q_j and section 7 of the V2.1 task sheet forbids an '
+                     'automatic q_j sweep; edit the configuration by hand.')
+        return 2
+
     base_model = ClosedLoopModel(config)
     data = data_adapter.load_data(config)
 
@@ -221,7 +262,8 @@ def command_scan(args) -> int:
     results = []
     for q_a in config.q_a_grid:
         model = base_model.with_q_a(q_a)
-        estimator = ClosedLoopKalman(model, config.X0_hat, config.P0, config.tolerances)
+        estimator = ClosedLoopKalman(model, config.prior_mean,
+                                     config.prior_covariance, config.tolerances)
         history = estimator.run(data.u)
         metrics = evaluation.evaluate(data.t, history, data, config, model)
         entry = {'q_a': float(q_a), 'metrics': metrics}
@@ -270,6 +312,34 @@ def _plot_scan(results: list, path: str):
     evaluation._save_figure(figure, path)
 
 
+def command_reference(args) -> int:
+    '''
+    Capture or verify the phase 1 ZOH reference record of section 5.
+    '''
+    from examples.kalman_accelerometer import regression
+
+    base_dir = args.base_dir or regression.ROOT
+    reference_dir = args.reference_dir or regression.REFERENCE_DIR
+
+    if args.capture:
+        manifest = regression.capture(base_dir=base_dir, directory=reference_dir)
+        logger.info('Reference record captured from the current implementation: '
+                    '%d cases, %s.', len(manifest['cases']), manifest['file'])
+        return 0
+
+    arrays, manifest = regression.load(reference_dir)
+    report = regression.compare(arrays, manifest, base_dir=base_dir)
+    text = json.dumps(report, indent=2, ensure_ascii=False,
+                      default=evaluation._json_default)
+    if args.out:
+        evaluation.save_json(args.out, report)
+        logger.info('Regression report written to `%s`.', args.out)
+    else:
+        print(text)
+    logger.info('%s', regression.summarize(report))
+    return 0 if report['passed'] else 1
+
+
 def main(argv=None) -> int:
     '''
     Dispatch the selected subcommand.
@@ -285,6 +355,7 @@ def main(argv=None) -> int:
         'check': command_check,
         'run': command_run,
         'scan': command_scan,
+        'reference': command_reference,
     }
     return handlers[args.command](args)
 

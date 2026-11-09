@@ -1,0 +1,119 @@
+{
+  "_note": [
+    "SYNTHETIC FOH coefficients for the phase 2 algebraic self checks (section 19.1).",
+    "Same synthetic mechanics, readout, PID and noise entries as algebraic-check.json;",
+    "only the prior model, q_j and the Jerk prior are added. They are NOT device",
+    "parameters and no result computed from them is a device result."
+  ],
+  "prior_model": "FOH",
+  "fs": 128000.0,
+  "Ts": 7.8125e-06,
+  "m": 7.45e-07,
+  "c": 4.95e-06,
+  "k": 5.623,
+  "K_u": 0.0001,
+  "k_cv": 1000000.0,
+  "k_adc": 1.0,
+  "K_p": -5.0,
+  "K_i": -0.5,
+  "K_d": -1.0,
+  "sigma_n2": 1e-12,
+  "mechanical_noise_psd": 1e-18,
+  "mechanical_noise_unit": "force",
+  "psd_convention": "two_sided_psd",
+  "q_j": 1.0,
+  "jerk0_hat": 0.0,
+  "jerk_init_mode": "unknown",
+  "jerk_var0": 100.0,
+  "X0_hat": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+  ],
+  "P0": [
+    [
+      1e-12,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      1e-08,
+      0.0,
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      0.0001,
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1e-08,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1e-12
+    ]
+  ],
+  "foh_output_fields": [
+    "jerk_hat",
+    "jerk_variance",
+    "jerk_accel_correlation"
+  ],
+  "zoh_reference": {
+    "config": "configs/algebraic-check.json",
+    "tolerance": 1e-12,
+    "note": "synthetic ZOH counterpart used only by the degeneracy check"
+  },
+  "init_mode": "k0",
+  "known_integrator_init": true,
+  "data_format": "npy_dir",
+  "column_map": {
+    "t": "pid/time.npy",
+    "u": "pid/pid.npy",
+    "x_true": "mass_block/position.npy",
+    "v_true": "mass_block/velocity.npy"
+  },
+  "units": {
+    "t": 1.0,
+    "u": 1.0
+  },
+  "sample_alignment": {
+    "offset": 0,
+    "length": null,
+    "time_offset": 0.0
+  },
+  "test_windows": {
+    "steady": [
+      0.5,
+      1.0
+    ]
+  },
+  "baseline_gain": null,
+  "seed": 20261026,
+  "data_path": null,
+  "output_dir": "data/kalman-accelerometer-check-foh",
+  "state_scales": [
+    1e-06,
+    0.0001,
+    0.01,
+    1280.0,
+    0.0001,
+    1e-06
+  ],
+  "_derivation_scale": "state_scales = [x, v, a, j, I, h] standard deviations; the Jerk scale is the acceleration scale divided by Ts because a Jerk changes the acceleration by a_scale in one sample."
+}
