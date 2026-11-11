@@ -142,6 +142,43 @@ def window_slice(t: np.ndarray, window: Optional[List[float]]) -> tuple:
     return int(mask[0]), int(mask[-1]) + 1
 
 
+def tone_decomposition(error: np.ndarray, t: np.ndarray,
+                       frequency: float) -> Dict[str, float]:
+    '''
+    Split an error signal into a coherent tone and the residual.
+
+    A causal estimator that lags a sinusoidal input produces an error at the
+    excitation frequency, while a plain measurement produces noise.  The two
+    behave very differently in an ASD and in an RMS, so the comparison reports
+    them separately: the amplitude of the least squares sinusoid at
+    ``frequency`` and the RMS of what is left.
+
+    Args:
+        error: Error samples ``estimate - truth``.
+        t: Sample times of the same samples.
+        frequency: Excitation frequency in Hz, strictly positive.
+
+    Returns:
+        Dict[str, float]: ``tone_hz``, ``tone_amplitude``, ``rms_tone`` (the
+        amplitude over sqrt 2) and ``rms_residual``.
+    '''
+    error = np.asarray(error, dtype=np.float64)
+    t = np.asarray(t, dtype=np.float64)
+    if frequency <= 0:
+        raise ValueError(f'frequency must be positive, got {frequency}')
+    omega = 2. * np.pi * frequency * (t - t[0])
+    basis = np.column_stack([np.sin(omega), np.cos(omega), np.ones_like(t)])
+    coefficients, *_ = np.linalg.lstsq(basis, error, rcond=None)
+    amplitude = float(np.hypot(coefficients[0], coefficients[1]))
+    residual = error - basis @ coefficients
+    return {
+        'tone_hz': float(frequency),
+        'tone_amplitude': amplitude,
+        'rms_tone': amplitude / np.sqrt(2.),
+        'rms_residual': float(np.sqrt(np.mean(residual ** 2))),
+    }
+
+
 def jerk_diagnostics(history: Dict[str, np.ndarray], t: np.ndarray,
                      window: Optional[List[float]] = None) -> Optional[Dict[str, float]]:
     '''

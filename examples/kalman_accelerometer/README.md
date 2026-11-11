@@ -102,11 +102,13 @@ python examples/kalman_accelerometer/main.py scan \
     --config examples/kalman_accelerometer/configs/xiong-2018.json \
     --data data/20261026-unit_step_1
 
-# 5. ZOH, FOH and the PID baseline on the same samples and windows
+# 5. ZOH, FOH, the PID baseline and the two low pass baselines on the same
+#    samples and windows; the cutoffs are explicit, never the silent default
 python examples/kalman_accelerometer/compare_priors.py \
     --zoh-config examples/kalman_accelerometer/configs/xiong-2018.json \
     --foh-config examples/kalman_accelerometer/configs/xiong-2018-foh.json \
-    --data data/20261026-unit_step_1 -o data/compare-unit-step
+    --data data/20261026-unit_step_1 --rc-fc 1000 --bw-fc 1000 \
+    -o data/compare-unit-step
 ```
 
 `run` writes `report.json`, `report.md`, `estimate.npz` and three figures into
@@ -116,11 +118,47 @@ name, unit and index and appends `jerk_hat`, `jerk_variance`,
 
 `compare_priors.py` writes `comparison.json`, `comparison.md` and five figures
 (overview, window zoom, error, Jerk, ASD), all on the same samples, units and
-evaluation windows.
+evaluation windows.  It compares five methods:
+
+| Method | Definition |
+|---|---|
+| ZOH / FOH | the two Kalman priors |
+| PID raw | the static force balance estimate `a = -K_u u / m` |
+| RC | `util.baseline_filters.RCFilter` applied to that estimate |
+| Butterworth | `util.baseline_filters.ButterworthFilter` applied to it |
+
+The filters only accept m/s², so `compare_priors.py` applies the calibration
+`-K_u/m` (and the `units['u']` code scale that `data_adapter` already applied to
+`u`) once before filtering, and records both factors plus a DC level check in
+`comparison.json`.  The default cutoff is 1 kHz for both filters; pass
+`--rc-fc` / `--bw-fc` explicitly.  For the 0-500 Hz sensor band 1 kHz keeps the
+passband droop within 1 dB (RC) / 0.26 dB (Butterworth) at 500 Hz; the phase lag
+of a causal filter cannot be removed by a cutoff choice, see the phase columns
+in the report and `MATH.md` 17.3.
+
+`--windows "steady=0.01,0.99;detail=0.04,0.048"` overrides the evaluation
+windows of both configured files, which is how the 1 s re-simulations are
+evaluated with the same code (the windows are otherwise read from the
+configurations).
 
 `scan` sweeps `q_a` and therefore refuses an FOH configuration: `q_j` is a
 different physical quantity and section 7 of V2.1 forbids an automatic `q_j`
 sweep.  Edit the FOH configuration by hand and repeat `run`/`compare_priors.py`.
+
+### Bode plot of the two baselines
+
+```bash
+python examples/kalman_accelerometer/bode_baselines.py --fc 1000 \
+    --fmin 1 --fmax 100000 -o figures/filter-bode-1khz.png
+```
+
+The script draws the *digital* response actually implemented by
+`util.baseline_filters` (via `frequency_response`) with
+`util.plot.default_freq_plot_fig`, marks the 0-500 Hz sensor band and the
+cutoff, and shades `f > fs/2` (64 kHz at 128 kHz sampling): above Nyquist a
+discrete time response is only the aliased image of 28-64 kHz, so it is not
+drawn.  The 1 Hz - 100 kHz axis keeps the request, the useful part stops at
+Nyquist.
 
 ### Converting MATLAB data
 
