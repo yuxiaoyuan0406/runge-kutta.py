@@ -115,8 +115,17 @@ import matplotlib.pyplot as plt
 
 def win_bh7(N: int) -> np.ndarray:
     """
-    7-term Blackman–Harris window (matching the given MATLAB WinBH7).
-    Returns column-like 1D array of length N.
+    7-term Blackman–Harris window (DFT-even, same coefficients as MATLAB WinBH7).
+
+    Returns a symmetric 1D array of exactly length N, for both even and odd N.
+
+    Note
+    ----
+    The original MATLAB WinBH7 builds ``W = [z zflr(2:N/2)]`` from
+    ``ix = 0:N/2-1``. For odd N that construction yields only ``N-2`` samples,
+    so ``periodogram(x, WinBH7(N), N, fs)`` always errors out on odd-length
+    records. This port fixes the odd case instead of reproducing the defect.
+    For even N the output is bit-identical to the MATLAB version.
     """
     N = int(N)
     if N <= 0:
@@ -131,8 +140,10 @@ def win_bh7(N: int) -> np.ndarray:
     a6 = 0.000031581188567106
 
     v = 2 * np.pi / N
-    # MATLAB: ix = 0:N/2-1; m = (ix+0.5)
-    half = N // 2
+    # 半窗取 ceil(N/2) 个点：偶数 N -> N/2；奇数 N -> (N+1)/2（含唯一中心点）。
+    # MATLAB 原文 `ix = 0:N/2-1` 在 N 为奇数时只得到 (N-1)/2 个点，
+    # 再配上 `zflr(2:N/2)`（奇数时只取到 1 个点），拼出的窗长只有 N-2。
+    half = (N + 1) // 2
     ix = np.arange(0, half, dtype=np.float64)
     m = ix + 0.5
 
@@ -148,16 +159,9 @@ def win_bh7(N: int) -> np.ndarray:
     if (N % 2) == 0:  # Even: W = [z fliplr(z)]
         W = np.concatenate([z, z[::-1]])
     else:
-        # MATLAB:
-        # zflr=fliplr(z);
-        # W=[z zflr(2:N/2)];
-        # 注意 MATLAB 的索引是 1-based；zflr(2:...) 等价于 Python 的 z[::-1][1:...]
-        zflr = z[::-1]
-        # MATLAB 的 N/2 在 odd 时是 形如 5/2=2.5，但其冒号索引实际以整数长度为准。
-        # 原代码的目标长度最终仍应为 N。
-        # 这里按 MATLAB 的构造：取 z + (zflr 去掉第一个元素) 然后再裁到 N。
-        W = np.concatenate([z, zflr[1:]])
-        W = W[:N]
+        # 奇数：z 已包含中心点，镜像时从倒数第二个元素开始取，避免中心点重复。
+        # 等价于 MATLAB 想表达的 `W=[z zflr(2:N/2)]`，但长度恰好为 N。
+        W = np.concatenate([z, z[-2::-1]])
 
     return W.astype(np.float64)
 
@@ -199,6 +203,8 @@ def bitstream_psd_fn_analogcl(output_g, fl=None, fh=None, *, show_plot=True):
 
     x = np.asarray(output_g, dtype=np.float64).reshape(-1)
     N = x.size
+    if N < 2:
+        raise ValueError(f"at least 2 samples are required, but got N={N}.")
 
     fs = 128000.0
     Nfft = int(round(0.512 * 2 * fs))  # = 131072, keep author choice
