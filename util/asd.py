@@ -7,7 +7,7 @@ Function:   用于闭环输出的单边 ASD（g/√Hz）评估与噪底计算。
 
 
 
-"""
+r"""
 
 ## Original Matlab script here.
 
@@ -170,7 +170,7 @@ def win_bh7(N: int) -> np.ndarray:
     return W.astype(np.float64)
 
 
-def bitstream_asd_fn_analogcl(
+def asd_fn(
     output_g,
     fl=None,
     fh=None,
@@ -262,7 +262,14 @@ def bitstream_asd_fn_analogcl(
         # MATLAB 里不存在这种调用方式（因为 nargin=2 时是 fl, fh），这里给个合理兜底
         fl = 20
 
-    x = np.asarray(data, dtype=np.float64).reshape(-1)
+    # 只接受 1-D 时间序列；(N, 1) / (1, N) 这类列/行向量会被压平，
+    # 但真正的多通道数据必须报错，不能像 reshape(-1) 那样静默交错拼接。
+    raw = np.asarray(data, dtype=np.float64)
+    x = np.squeeze(raw)
+    if x.ndim != 1:
+        raise ValueError(
+            f"output_g must be a 1-D time series, got shape {raw.shape}"
+        )
     N = x.size
     if N < 2:
         raise ValueError(f"at least 2 samples are required, but got N={N}.")
@@ -367,7 +374,7 @@ def plot_asd(
     ----------
     freq, asd : array-like
         One-sided frequency axis (Hz) and ASD (g/sqrt(Hz)), as returned by
-        :func:`bitstream_asd_fn_analogcl`.
+        :func:`asd_fn`.
     nf_dbg : float, optional
         Noise floor in dB re 1 g/sqrt(Hz). Drawn as a dashed horizontal line
         when finite.
