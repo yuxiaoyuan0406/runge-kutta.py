@@ -176,6 +176,7 @@ def bitstream_psd_fn_analogcl(output_g, fl=None, fh=None, *, show_plot=True):
         Time series already in unit of g (continuous-valued output).
     fl, fh : float
         Noise-floor band edges in Hz. Defaults: fl=20, fh=200 (matching MATLAB).
+        `fl` must be finite and >= 0, `fh` must be finite and >= `fl`.
     show_plot : bool
         If True, plot PSD in dB scale vs log-frequency (matching MATLAB).
 
@@ -186,7 +187,16 @@ def bitstream_psd_fn_analogcl(output_g, fl=None, fh=None, *, show_plot=True):
     psd : np.ndarray
         One-sided PSD (g^2/Hz).
     nf_db : float
-        Noise floor in dB, computed as 10*log10(mean(psd[fl..fh])).
+        Noise floor in dB, computed as ``10*log10(mean(psd))`` over the
+        requested band, clipped to the frequency range actually covered by the
+        spectrum. An empty band raises instead of returning NaN; an identically
+        zero spectrum (e.g. a stuck-at-zero output) yields ``-inf``.
+
+    Raises
+    ------
+    ValueError
+        If the record is shorter than 2 samples, if `fl`/`fh` are not finite or
+        ordered correctly, or if the requested band contains no spectral bin.
     """
     if output_g is None:
         raise ValueError("requires input data array")
@@ -235,18 +245,42 @@ def bitstream_psd_fn_analogcl(output_g, fl=None, fh=None, *, show_plot=True):
             scaling="density",
         )
 
-    # Noise floor (keep MATLAB method)
-    band_mask = (freq >= float(fl)) & (freq <= float(fh))
-    if not np.any(band_mask):
-        nf_db = float("nan")
-    else:
-        nf_db = 10.0 * np.log10(np.mean(psd[band_mask]))
+    # 噪底频带校验。单边谱只覆盖 [0, fs/2]，所以：
+    #  - 参数本身非法（非有限 / 负频 / 反序）直接报错；
+    #  - 与谱范围只有部分交集时裁到交集，并如实打印实际使用的频带；
+    #  - 交集为空时报错，绝不返回 NaN 让下游拿着 nan dB 继续跑。
+    fl = float(fl)
+    fh = float(fh)
+    if not (np.isfinite(fl) and np.isfinite(fh)):
+        raise ValueError(f"fl/fh must be finite, got fl={fl!r}, fh={fh!r}")
+    if fl < 0:
+        raise ValueError(f"fl must be >= 0 (one-sided spectrum), got fl={fl}")
+    if fl > fh:
+        raise ValueError(f"invalid band: fl={fl} > fh={fh}")
 
-    print(f"Noise Floor ({fl}-{fh}Hz): {np.round(nf_db, 1)}")
+    f_lo, f_hi = float(freq[0]), float(freq[-1])
+    lo, hi = max(fl, f_lo), min(fh, f_hi)
+    band_mask = (freq >= lo) & (freq <= hi)
+    if not np.any(band_mask):
+        raise ValueError(
+            f"no spectral bin in [{fl:g}, {fh:g}] Hz; the one-sided spectrum "
+            f"covers [{f_lo:g}, {f_hi:g}] Hz with df={freq[1] - freq[0]:g} Hz"
+        )
+    band_mean = float(np.mean(psd[band_mask]))
+    if band_mean <= 0.0:
+        # 全零输出（例如闭环卡死在 0）时 log10(0) 会给出 -inf 并刷 RuntimeWarning。
+        nf_db = float("-inf")
+    else:
+        nf_db = 10.0 * np.log10(band_mean)
+
+    print(f"Noise Floor ({lo:g}-{hi:g}Hz): {np.round(nf_db, 1)}")
 
     if show_plot:
+        # 全零谱会让 log10 报 divide-by-zero；这里 -inf 是预期结果，让 matplotlib 自己裁掉即可。
+        with np.errstate(divide="ignore"):
+            psd_db = 10.0 * np.log10(psd)
         plt.figure()
-        plt.semilogx(freq, 10.0 * np.log10(psd))
+        plt.semilogx(freq, psd_db)
         plt.xlim([1, 1e5])
         plt.ylim([-200, 20])
         plt.xlabel("Frequency (Hz)")
@@ -255,7 +289,7 @@ def bitstream_psd_fn_analogcl(output_g, fl=None, fh=None, *, show_plot=True):
         plt.title(f"Closed-loop output PSD, fs = {int(fs)} Hz")
         plt.text(
             1.1, 10,
-            f"Noise Floor ({fl}-{fh}Hz): {int(np.round(nf_db))}",
+            f"Noise Floor ({lo:g}-{hi:g}Hz): {nf_db:.0f}",
             fontsize=10, fontweight="bold"
         )
         plt.text(
