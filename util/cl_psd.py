@@ -111,6 +111,8 @@ import numpy as np
 from scipy import signal
 import matplotlib.pyplot as plt
 
+from .signal import Signal
+
 
 
 def win_bh7(N: int) -> np.ndarray:
@@ -166,17 +168,39 @@ def win_bh7(N: int) -> np.ndarray:
     return W.astype(np.float64)
 
 
-def bitstream_psd_fn_analogcl(output_g, fl=None, fh=None, *, show_plot=True):
+def bitstream_psd_fn_analogcl(
+    output_g,
+    fl=None,
+    fh=None,
+    *,
+    fs=None,
+    nfft=None,
+    noverlap=None,
+    show_plot=True,
+):
     """
     Python equivalent of the provided MATLAB function bitstreamPSDfn_analogcl.
 
     Parameters
     ----------
-    output_g : array-like
-        Time series already in unit of g (continuous-valued output).
+    output_g : array-like or util.Signal
+        Time series already in unit of g (continuous-valued output). A
+        ``util.Signal`` is accepted as well; its samples and sampling rate are
+        then taken from the object.
     fl, fh : float
         Noise-floor band edges in Hz. Defaults: fl=20, fh=200 (matching MATLAB).
         `fl` must be finite and >= 0, `fh` must be finite and >= `fl`.
+    fs : float, optional
+        Sampling rate in Hz. Defaults to 128 kHz (the MATLAB constant), or to
+        ``1/Signal.dt`` when a ``util.Signal`` is passed. Must be finite and > 0.
+    nfft : int, optional
+        Segment/FFT length. Defaults to ``int(round(1.024*fs))``, i.e. 131072 at
+        128 kHz (the MATLAB choice). If the record is shorter than `nfft`, a
+        single periodogram over the whole record is used instead, without zero
+        padding (same as MATLAB's ``if N < Nfft`` branch).
+    noverlap : int, optional
+        Overlap between Welch segments. Defaults to ``nfft // 2``. Ignored when
+        the record is shorter than `nfft`.
     show_plot : bool
         If True, plot PSD in dB scale vs log-frequency (matching MATLAB).
 
@@ -195,11 +219,26 @@ def bitstream_psd_fn_analogcl(output_g, fl=None, fh=None, *, show_plot=True):
     Raises
     ------
     ValueError
-        If the record is shorter than 2 samples, if `fl`/`fh` are not finite or
-        ordered correctly, or if the requested band contains no spectral bin.
+        If the record is shorter than 2 samples, if `fs`/`nfft`/`noverlap` are
+        outside their valid ranges, if `fl`/`fh` are not finite or ordered
+        correctly, or if the requested band contains no spectral bin.
     """
     if output_g is None:
         raise ValueError("requires input data array")
+
+    # 采样率来源优先级：显式 fs > Signal.dt > MATLAB 的 128 kHz。
+    if isinstance(output_g, Signal):
+        data = output_g.x
+        if fs is None:
+            fs = 1.0 / float(output_g.dt)
+    else:
+        data = output_g
+
+    if fs is None:
+        fs = 128000.0
+    fs = float(fs)
+    if not np.isfinite(fs) or fs <= 0.0:
+        raise ValueError(f"fs must be a finite positive number, got fs={fs!r}")
 
     # Match MATLAB nargin defaults
     if fl is None and fh is None:
@@ -211,16 +250,28 @@ def bitstream_psd_fn_analogcl(output_g, fl=None, fh=None, *, show_plot=True):
         # MATLAB 里不存在这种调用方式（因为 nargin=2 时是 fl, fh），这里给个合理兜底
         fl = 20
 
-    x = np.asarray(output_g, dtype=np.float64).reshape(-1)
+    x = np.asarray(data, dtype=np.float64).reshape(-1)
     N = x.size
     if N < 2:
         raise ValueError(f"at least 2 samples are required, but got N={N}.")
 
-    fs = 128000.0
-    Nfft = int(round(0.512 * 2 * fs))  # = 131072, keep author choice
+    if nfft is None:
+        nfft = int(round(0.512 * 2 * fs))  # MATLAB: Nfft = 1.024*fs (= 131072 @ 128 kHz)
+    nfft = int(nfft)
+    if nfft < 2:
+        raise ValueError(f"nfft must be >= 2, got nfft={nfft}")
+
+    if noverlap is None:
+        noverlap = nfft // 2
+    noverlap = int(noverlap)
+    if not 0 <= noverlap < nfft:
+        raise ValueError(
+            f"noverlap must satisfy 0 <= noverlap < nfft, got noverlap={noverlap}, nfft={nfft}"
+        )
 
     # PSD estimation (one-sided), density scaling
-    if N < Nfft:
+    if N < nfft:
+        # 记录不足一段：用全部数据做单段 periodogram，不补零（MATLAB 的 if N < Nfft 分支）。
         w = win_bh7(N)
         freq, psd = signal.periodogram(
             x,
@@ -232,14 +283,14 @@ def bitstream_psd_fn_analogcl(output_g, fl=None, fh=None, *, show_plot=True):
             scaling="density",
         )
     else:
-        w = win_bh7(Nfft)
+        w = win_bh7(nfft)
         freq, psd = signal.welch(
             x,
             fs=fs,
             window=w,
-            nperseg=Nfft,         # MATLAB: WinBH7(Nfft)
-            noverlap=Nfft // 2,   # MATLAB: Nfft/2
-            nfft=Nfft,            # MATLAB: Nfft
+            nperseg=nfft,         # MATLAB: WinBH7(Nfft)
+            noverlap=noverlap,    # MATLAB: Nfft/2
+            nfft=nfft,            # MATLAB: Nfft
             detrend=False,        # "不去均值/不去趋势"
             return_onesided=True,
             scaling="density",
