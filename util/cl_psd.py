@@ -2,7 +2,7 @@
 Author:     Kedu Han
             Zeyu Wang
             Xiaoyuan Yu
-Funtion:    用于闭环的ASD评估。
+Function:   用于闭环输出的单边 ASD（g/√Hz）评估与噪底计算。
 '''
 
 
@@ -16,6 +16,7 @@ Funtion:    用于闭环的ASD评估。
 
 *Note: 理论上该函数计算的是ASD，但上一任作者糊涂搁这写的PSD.*
 *这里不做修改，但Python脚本中的注释和变量会进行对应的修正.*
+*Python 移植版按 ASD 口径实现：返回 asd = sqrt(psd)，噪底单位 dB re 1 g/√Hz。*
 
 function bitstreamPSDfn_analogcl(output_g, fl, fh)
 % bitstreamPSDfn_closeloop
@@ -169,7 +170,7 @@ def win_bh7(N: int) -> np.ndarray:
     return W.astype(np.float64)
 
 
-def bitstream_psd_fn_analogcl(
+def bitstream_asd_fn_analogcl(
     output_g,
     fl=None,
     fh=None,
@@ -179,8 +180,13 @@ def bitstream_psd_fn_analogcl(
     noverlap=None,
 ):
     """
-    Python equivalent of the provided MATLAB function bitstreamPSDfn_analogcl,
-    minus its plotting: render the result with :func:`plot_psd`.
+    Python equivalent of the provided MATLAB function bitstreamPSDfn_analogcl
+    (which is an ASD estimate despite its name), minus its plotting: render the
+    result with :func:`plot_asd`.
+
+    The spectrum is estimated as a one-sided PSD (Welch/periodogram, density
+    scaling) and returned as an amplitude spectral density, ``asd = sqrt(psd)``,
+    in g/sqrt(Hz).
 
     Parameters
     ----------
@@ -207,17 +213,20 @@ def bitstream_psd_fn_analogcl(
     -------
     freq : np.ndarray
         Frequency axis (Hz), one-sided.
-    psd : np.ndarray
-        One-sided PSD (g^2/Hz).
-    nf_db : float
-        Noise floor in dB, computed as ``10*log10(mean(psd))`` over the
-        requested band, clipped to the frequency range actually covered by the
-        spectrum. An empty band raises instead of returning NaN; an identically
-        zero spectrum (e.g. a stuck-at-zero output) yields ``-inf``.
+    asd : np.ndarray
+        One-sided amplitude spectral density (g/sqrt(Hz)), ``asd = sqrt(psd)``.
+    nf_dbg : float
+        Noise floor in dB re 1 g/sqrt(Hz), computed as ``10*log10(mean(psd))``
+        over the requested band, clipped to the frequency range actually covered
+        by the spectrum. This is the *power* mean of the ASD (i.e.
+        ``20*log10(rms(asd))``); ``20*log10(mean(asd))`` is a different, lower
+        number whose gap depends on the number of independent bins in the band.
+        An empty band raises instead of returning NaN; an identically zero
+        spectrum (e.g. a stuck-at-zero output) yields ``-inf``.
 
     See Also
     --------
-    plot_psd : render ``freq``/``psd`` as a dB curve on a log-frequency axis.
+    plot_asd : render ``freq``/``asd`` as a dB curve on a log-frequency axis.
 
     Raises
     ------
@@ -299,6 +308,9 @@ def bitstream_psd_fn_analogcl(
             scaling="density",
         )
 
+    # 对外口径是 ASD：asd = sqrt(psd)，单位 g/√Hz。
+    asd = np.sqrt(psd)
+
     # 噪底频带校验。单边谱只覆盖 [0, fs/2]，所以：
     #  - 参数本身非法（非有限 / 负频 / 反序）直接报错；
     #  - 与谱范围只有部分交集时裁到交集，并如实打印实际使用的频带；
@@ -320,22 +332,23 @@ def bitstream_psd_fn_analogcl(
             f"no spectral bin in [{fl:g}, {fh:g}] Hz; the one-sided spectrum "
             f"covers [{f_lo:g}, {f_hi:g}] Hz with df={freq[1] - freq[0]:g} Hz"
         )
+    # 功率平均（rms 意义下的等效平坦 ASD），不是 20*log10(mean(asd))。
     band_mean = float(np.mean(psd[band_mask]))
     if band_mean <= 0.0:
         # 全零输出（例如闭环卡死在 0）时 log10(0) 会给出 -inf 并刷 RuntimeWarning。
-        nf_db = float("-inf")
+        nf_dbg = float("-inf")
     else:
-        nf_db = 10.0 * np.log10(band_mean)
+        nf_dbg = 10.0 * np.log10(band_mean)
 
-    print(f"Noise Floor ({lo:g}-{hi:g}Hz): {np.round(nf_db, 1)}")
+    print(f"Noise Floor ({lo:g}-{hi:g}Hz): {np.round(nf_dbg, 1)} dBg/√Hz")
 
-    return freq, psd, nf_db
+    return freq, asd, nf_dbg
 
 
-def plot_psd(
+def plot_asd(
     freq,
-    psd,
-    nf_db=None,
+    asd,
+    nf_dbg=None,
     *,
     ax=None,
     label="",
@@ -346,18 +359,18 @@ def plot_psd(
     block=False,
 ):
     """
-    Plot a one-sided PSD as a level curve on a log-frequency axis.
+    Plot a one-sided ASD as a level curve on a log-frequency axis.
 
-    The drawn curve is ``10*log10(psd)``, which numerically equals
-    ``20*log10(asd)``, i.e. dB relative to 1 g/sqrt(Hz).
+    The drawn curve is ``20*log10(asd)``, i.e. dB relative to 1 g/sqrt(Hz).
 
     Parameters
     ----------
-    freq, psd : array-like
-        One-sided frequency axis (Hz) and PSD (g^2/Hz), as returned by
-        :func:`bitstream_psd_fn_analogcl`.
-    nf_db : float, optional
-        Noise floor in dB. Drawn as a dashed horizontal line when finite.
+    freq, asd : array-like
+        One-sided frequency axis (Hz) and ASD (g/sqrt(Hz)), as returned by
+        :func:`bitstream_asd_fn_analogcl`.
+    nf_dbg : float, optional
+        Noise floor in dB re 1 g/sqrt(Hz). Drawn as a dashed horizontal line
+        when finite.
     ax : matplotlib.axes.Axes, optional
         Axes to draw into; useful to overlay several runs. A new figure is
         created through :func:`util.plot.default_noise_plot_fig` when omitted.
@@ -380,24 +393,24 @@ def plot_psd(
         The figure and axes holding the curve.
     """
     freq = np.asarray(freq, dtype=np.float64).reshape(-1)
-    psd = np.asarray(psd, dtype=np.float64).reshape(-1)
-    if freq.shape != psd.shape:
+    asd = np.asarray(asd, dtype=np.float64).reshape(-1)
+    if freq.shape != asd.shape:
         raise ValueError(
-            f"freq and psd must have the same length, got {freq.shape} vs {psd.shape}"
+            f"freq and asd must have the same length, got {freq.shape} vs {asd.shape}"
         )
     if freq.size == 0:
-        raise ValueError("freq/psd are empty.")
+        raise ValueError("freq/asd are empty.")
 
     if ax is None:
         if title is None:
-            title = f"Closed-loop output PSD, fs = {2.0 * float(freq[-1]):g} Hz"
+            title = f"Closed-loop output ASD, fs = {2.0 * float(freq[-1]):g} Hz"
         fig, ax = default_noise_plot_fig(title=title)
     else:
         fig = ax.figure
 
     # 全零谱会 log10(0) 得到 -inf；这里是预期结果，画出来交给坐标轴裁剪即可。
     with np.errstate(divide="ignore"):
-        level_db = 10.0 * np.log10(psd)
+        level_db = 20.0 * np.log10(asd)
     ax.plot(freq, level_db, label=label or None)
 
     positive = freq[freq > 0.0]
@@ -411,18 +424,18 @@ def plot_psd(
         bottom = float(floor_db) if floor_db is not None else -200.0
         ax.set_ylim(bottom=bottom, top=bottom + 10.0)
 
-    ax.set_ylabel(r"1-sided Spectrum Level (dBg/$\sqrt{Hz}$)")
+    ax.set_ylabel(r"1-sided ASD (dBg/$\sqrt{Hz}$)")
 
-    if nf_db is not None and np.isfinite(nf_db):
+    if nf_dbg is not None and np.isfinite(nf_dbg):
         band_text = ""
         if band is not None:
             band_text = f" ({band[0]:g}-{band[1]:g} Hz)"
         ax.axhline(
-            float(nf_db),
+            float(nf_dbg),
             linestyle="--",
             linewidth=1.0,
             color="C1",
-            label=f"Noise floor{band_text}: {nf_db:.1f} dB",
+            label=f"Noise floor{band_text}: {nf_dbg:.1f} dBg/√Hz",
         )
 
     if ax.get_legend_handles_labels()[0]:
