@@ -227,6 +227,24 @@ def asd_fn(
     See Also
     --------
     plot_asd : render ``freq``/``asd`` as a dB curve on a log-frequency axis.
+    util.util.compute_asd_welch : general-purpose Welch ASD with configurable
+        window / segment length, mean removal and NaN cleaning.
+
+    Notes
+    -----
+    This is the *MATLAB-parity* variant: 7-term Blackman-Harris window, fixed
+    ``nfft = 1.024*fs`` segments and no detrending, so it reproduces the
+    reference closed-loop analysis bit for bit. The general-purpose
+    :func:`util.util.compute_asd_welch` uses a Hann window, adaptive segment
+    lengths and mean removal by default; its numbers are **not** interchangeable
+    with these.
+
+    The noise floor is the rectangular bin average ``10*log10(mean(psd))`` over
+    the band, whereas :func:`util.util.band_asd` defaults to the trapezoidal
+    ``sqrt(integral(psd) / bandwidth)``. On top of that the two estimators use
+    different windows, segment lengths and detrending, so a single realization
+    can differ by around 1 dB even for white noise; do not use one to validate
+    the other.
 
     Raises
     ------
