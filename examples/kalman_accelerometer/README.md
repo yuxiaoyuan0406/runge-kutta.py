@@ -160,6 +160,30 @@ discrete time response is only the aliased image of 28-64 kHz, so it is not
 drawn.  The 1 Hz - 100 kHz axis keeps the request, the useful part stops at
 Nyquist.
 
+### Noise ASD of the outputs
+
+`noise_asd.py` applies the repository's `util.asd` module (the Python port of
+the MATLAB `bitstreamPSDfn_analogcl`: 7-term Blackman-Harris window,
+`nfft = 1.024 fs`, one-sided ASD, noise floor as the power mean of the PSD in a
+band) to the **output signals** of PID, ZOH, FOH, RC and Butterworth.  No
+reference is subtracted: every signal is converted from m/s² to g
+(1 g = 9.80665 m/s²) and transformed as is.
+
+```bash
+python examples/kalman_accelerometer/noise_asd.py \
+    --zoh-config examples/kalman_accelerometer/configs/xiong-2018-sine.json \
+    --foh-config examples/kalman_accelerometer/configs/xiong-2018-sine-foh.json \
+    --data data/20261111-125hz-sine-1 --band 2000,20000 \
+    -o data/noise-asd-125hz_sine_1
+```
+
+The noise-floor band defaults to 2-20 kHz because the 125 Hz and 12.5 Hz
+excitations and their low order harmonics must stay outside it; the 20-200 Hz
+default of the MATLAB script would be dominated by the 125 Hz line on these
+records.  With 128001 samples the estimator falls back to the full-record
+periodogram (`df` about 1 Hz), exactly as the MATLAB original does when
+`N < nfft`.
+
 ### Converting MATLAB data
 
 `mat_to_npy.py` turns a `.mat` file into a tree of `.npy` arrays:
