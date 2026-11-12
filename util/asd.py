@@ -178,6 +178,7 @@ def asd_fn(
     fs=None,
     nfft=None,
     noverlap=None,
+    verbose=False,
 ):
     """
     Python equivalent of the provided MATLAB function bitstreamPSDfn_analogcl
@@ -208,6 +209,9 @@ def asd_fn(
     noverlap : int, optional
         Overlap between Welch segments. Defaults to ``nfft // 2``. Ignored when
         the record is shorter than `nfft`.
+    verbose : bool
+        Print the noise-floor line, like the MATLAB original's ``disp``.
+        Defaults to False so that batch runs and test output stay quiet.
 
     Returns
     -------
@@ -365,7 +369,8 @@ def asd_fn(
     else:
         nf_dbg = 10.0 * np.log10(band_mean)
 
-    print(f"Noise Floor ({lo:g}-{hi:g}Hz): {np.round(nf_dbg, 1)} dBg/√Hz")
+    if verbose:
+        print(f"Noise Floor ({lo:g}-{hi:g}Hz): {np.round(nf_dbg, 1)} dBg/√Hz")
 
     return freq, asd, nf_dbg
 

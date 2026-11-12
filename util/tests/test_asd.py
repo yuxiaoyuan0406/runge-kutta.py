@@ -17,9 +17,11 @@ Where the data folder lives is resolved in `_find_data_dir()`: the
 found the parity tests are skipped with an explicit message instead of
 silently passing.
 '''
+import io
 import os
 import unittest
 import warnings
+import contextlib
 from pathlib import Path
 
 import numpy as np
@@ -278,6 +280,29 @@ class TestUnitsAndShapes(unittest.TestCase):
         self.assertTrue(np.all(asd == 0.0))
         self.assertEqual(nf, float("-inf"))
         self.assertEqual([str(w.message) for w in caught], [])
+
+
+class TestVerbose(unittest.TestCase):
+    '''The MATLAB-style noise-floor line is opt-in.'''
+
+    def setUp(self):
+        self.x = np.random.default_rng(4).normal(size=131072)
+
+    def test_silent_by_default(self):
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            asd_fn(self.x, 20, 200)
+        self.assertEqual(buf.getvalue(), "")
+
+    def test_verbose_prints_exactly_one_line(self):
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            _, _, nf = asd_fn(self.x, 20, 200, verbose=True)
+        lines = [line for line in buf.getvalue().splitlines() if line.strip()]
+        self.assertEqual(len(lines), 1)
+        self.assertIn("Noise Floor (20-200Hz)", lines[0])
+        self.assertIn("dBg/", lines[0])
+        self.assertIn(f"{np.round(nf, 1)}", lines[0])
 
 
 class TestPlotAsd(unittest.TestCase):
