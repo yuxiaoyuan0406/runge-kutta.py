@@ -111,6 +111,7 @@ import numpy as np
 from scipy import signal
 import matplotlib.pyplot as plt
 
+from .plot import default_noise_plot_fig
 from .signal import Signal
 
 
@@ -176,10 +177,10 @@ def bitstream_psd_fn_analogcl(
     fs=None,
     nfft=None,
     noverlap=None,
-    show_plot=True,
 ):
     """
-    Python equivalent of the provided MATLAB function bitstreamPSDfn_analogcl.
+    Python equivalent of the provided MATLAB function bitstreamPSDfn_analogcl,
+    minus its plotting: render the result with :func:`plot_psd`.
 
     Parameters
     ----------
@@ -201,8 +202,6 @@ def bitstream_psd_fn_analogcl(
     noverlap : int, optional
         Overlap between Welch segments. Defaults to ``nfft // 2``. Ignored when
         the record is shorter than `nfft`.
-    show_plot : bool
-        If True, plot PSD in dB scale vs log-frequency (matching MATLAB).
 
     Returns
     -------
@@ -215,6 +214,10 @@ def bitstream_psd_fn_analogcl(
         requested band, clipped to the frequency range actually covered by the
         spectrum. An empty band raises instead of returning NaN; an identically
         zero spectrum (e.g. a stuck-at-zero output) yields ``-inf``.
+
+    See Also
+    --------
+    plot_psd : render ``freq``/``psd`` as a dB curve on a log-frequency axis.
 
     Raises
     ------
@@ -326,30 +329,108 @@ def bitstream_psd_fn_analogcl(
 
     print(f"Noise Floor ({lo:g}-{hi:g}Hz): {np.round(nf_db, 1)}")
 
-    if show_plot:
-        # 全零谱会让 log10 报 divide-by-zero；这里 -inf 是预期结果，让 matplotlib 自己裁掉即可。
-        with np.errstate(divide="ignore"):
-            psd_db = 10.0 * np.log10(psd)
-        plt.figure()
-        plt.semilogx(freq, psd_db)
-        plt.xlim([1, 1e5])
-        plt.ylim([-200, 20])
-        plt.xlabel("Frequency (Hz)")
-        plt.ylabel(r"1-sided Spectrum Level (dBg/$\sqrt{Hz}$)")
-        plt.grid(True, which="both")
-        plt.title(f"Closed-loop output PSD, fs = {int(fs)} Hz")
-        plt.text(
-            1.1, 10,
-            f"Noise Floor ({lo:g}-{hi:g}Hz): {nf_db:.0f}",
-            fontsize=10, fontweight="bold"
-        )
-        plt.text(
-            1.1, 0,
-            "File",
-            fontsize=10, fontweight="bold"
-        )
-        plt.show()
-
     return freq, psd, nf_db
+
+
+def plot_psd(
+    freq,
+    psd,
+    nf_db=None,
+    *,
+    ax=None,
+    label="",
+    band=None,
+    floor_db=None,
+    title=None,
+    show=False,
+    block=False,
+):
+    """
+    Plot a one-sided PSD as a level curve on a log-frequency axis.
+
+    The drawn curve is ``10*log10(psd)``, which numerically equals
+    ``20*log10(asd)``, i.e. dB relative to 1 g/sqrt(Hz).
+
+    Parameters
+    ----------
+    freq, psd : array-like
+        One-sided frequency axis (Hz) and PSD (g^2/Hz), as returned by
+        :func:`bitstream_psd_fn_analogcl`.
+    nf_db : float, optional
+        Noise floor in dB. Drawn as a dashed horizontal line when finite.
+    ax : matplotlib.axes.Axes, optional
+        Axes to draw into; useful to overlay several runs. A new figure is
+        created through :func:`util.plot.default_noise_plot_fig` when omitted.
+    label : str
+        Curve label (e.g. the data file or configuration name).
+    band : (float, float), optional
+        Noise-floor band, used only for the legend text.
+    floor_db : float, optional
+        Hard lower y limit. Left to matplotlib's autoscale when omitted, which
+        keeps overlays of differently-scaled runs working; pass e.g. ``-120`` to
+        zoom in on a quiet floor, or to clamp an all-zero (``-inf``) spectrum.
+    title : str, optional
+        Figure title. Defaults to one that names the inferred sampling rate.
+    show, block : bool
+        Show the figure after drawing, forwarding `block` to ``plt.show``.
+
+    Returns
+    -------
+    fig, ax : matplotlib.figure.Figure, matplotlib.axes.Axes
+        The figure and axes holding the curve.
+    """
+    freq = np.asarray(freq, dtype=np.float64).reshape(-1)
+    psd = np.asarray(psd, dtype=np.float64).reshape(-1)
+    if freq.shape != psd.shape:
+        raise ValueError(
+            f"freq and psd must have the same length, got {freq.shape} vs {psd.shape}"
+        )
+    if freq.size == 0:
+        raise ValueError("freq/psd are empty.")
+
+    if ax is None:
+        if title is None:
+            title = f"Closed-loop output PSD, fs = {2.0 * float(freq[-1]):g} Hz"
+        fig, ax = default_noise_plot_fig(title=title)
+    else:
+        fig = ax.figure
+
+    # 全零谱会 log10(0) 得到 -inf；这里是预期结果，画出来交给坐标轴裁剪即可。
+    with np.errstate(divide="ignore"):
+        level_db = 10.0 * np.log10(psd)
+    ax.plot(freq, level_db, label=label or None)
+
+    positive = freq[freq > 0.0]
+    if positive.size:
+        ax.set_xlim(left=float(positive.min()), right=float(freq[-1]))
+
+    if floor_db is not None:
+        ax.set_ylim(bottom=float(floor_db))
+    if not np.any(np.isfinite(level_db)):
+        # 全零谱：没有有限值可供 autoscale。
+        bottom = float(floor_db) if floor_db is not None else -200.0
+        ax.set_ylim(bottom=bottom, top=bottom + 10.0)
+
+    ax.set_ylabel(r"1-sided Spectrum Level (dBg/$\sqrt{Hz}$)")
+
+    if nf_db is not None and np.isfinite(nf_db):
+        band_text = ""
+        if band is not None:
+            band_text = f" ({band[0]:g}-{band[1]:g} Hz)"
+        ax.axhline(
+            float(nf_db),
+            linestyle="--",
+            linewidth=1.0,
+            color="C1",
+            label=f"Noise floor{band_text}: {nf_db:.1f} dB",
+        )
+
+    if ax.get_legend_handles_labels()[0]:
+        ax.legend(loc="upper right")
+
+    if show:
+        plt.show(block=block)
+
+    return fig, ax
 
 
