@@ -10,6 +10,10 @@ import numpy as np
 import logging
 from scipy import signal
 
+# numpy 2 把 `trapz` 改名为 `trapezoid`；仓库远端环境固定 numpy 1.26，
+# 这里做一次兼容，两边都能用且都不触发弃用告警。
+_trapezoid = getattr(np, "trapezoid", None) or np.trapz
+
 now = datetime.now()
 formatted_date_time = now.strftime('%Y%m%d-%H%M%S')
 
@@ -80,6 +84,17 @@ def compute_asd_welch(
     x, dt, nperseg=None, noverlap=None,
     window='hann', detrend='constant', safe_min_points=256
 ):
+    '''
+    通用可配的单边 ASD 估计（Welch + 密度标定）。
+
+    默认走 `hann` 窗、去均值、自适应段长（约 8~16 段），并清洗 NaN/Inf，
+    因此适合一般性分析；返回 `(f, asd, psd, info)`，`info` 里带
+    `var_spec/var_time` 自检比。
+
+    若要做**闭环输出与 MATLAB `bitstreamPSDfn_analogcl` 的逐位对齐**
+    （7 项 Blackman-Harris 窗、固定 `1.024*fs` 段长、不去均值、直接给噪底），
+    请用 `util.asd.asd_fn` / `util.plot_asd`；两者默认值不同，结果不能混用。
+    '''
     # 一维化
     x = np.asarray(x); x = np.squeeze(x)
     if x.ndim != 1:
@@ -116,10 +131,10 @@ def compute_asd_welch(
     )
     asd = np.sqrt(psd)
 
-    # 自检（使用 np.trapezoid 消除弃用警告）
+    # 自检（_trapezoid 同时兼容 numpy 1.x 的 `trapz` 与 2.x 的 `trapezoid`）
     x_check = x - (np.mean(x) if detrend == 'constant' else 0.0)
     var_time = np.var(x_check, ddof=0)
-    var_spec = np.trapezoid(psd, f) if len(f) > 1 else np.nan
+    var_spec = _trapezoid(psd, f) if len(f) > 1 else np.nan
 
     info = {
         "fs": float(fs), "N": int(N), "nperseg": int(nperseg),
@@ -162,7 +177,7 @@ def _band_average_asd_from_spectrum(
         if f_sel.size == 1:
             return float(asd_sel[0])  # 退化：单 bin
         psd_sel = asd_sel**2
-        area = float(np.trapezoid(psd_sel, f_sel))  # ∫PSD df
+        area = float(_trapezoid(psd_sel, f_sel))  # ∫PSD df
         bandwidth = float(f_sel.max() - f_sel.min())
         return float(np.sqrt(area / bandwidth))
     else:
@@ -181,6 +196,11 @@ def band_asd(
     直接返回该频带内的“平均 ASD”。
 
     默认 method='equivalent_flat'（推荐），可改为 'mean' 或 'median'。
+
+    注意与 `util.asd.asd_fn` 的噪底口径不同：这里 `equivalent_flat` 是
+    `sqrt(∫PSD·df / 带宽)`（梯形积分），`asd_fn` 的 `nf_dbg` 是频带内
+    矩形 bin 平均 `10*log10(mean(PSD))`。再叠加窗/段长/去均值的差异，
+    同一段白噪声的单次实现也能差约 1 dB，两者不能互相校验。
     """
     f, asd, _, _ = compute_asd_welch(
         x, dt, nperseg=nperseg, noverlap=noverlap,
